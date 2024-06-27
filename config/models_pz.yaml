@@ -1,4 +1,4 @@
-paths_llama_2:
+llama_2:
 - - llama2_7b
   - /U_20240603_ZSH_SMIL/LLM/models--meta-llama--Llama-2-7b-hf/snapshots/01c7f73d771dfac7d292323805ebc428287df4f9
   - llama2
@@ -23,7 +23,7 @@ paths_llama_2:
   - /U_20240603_ZSH_SMIL/LLM/Llama-2-70b-chat-hf
   - llama2
   - 70
-paths_llama_code:
+llama_code:
 - - llamaCode_7b
   - /U_20240603_ZSH_SMIL/LLM/models--meta-llama--CodeLlama-7b-hf/snapshots/b462c3c99b077d341db691ec780a33156f3c1472
   - Codellama
@@ -40,7 +40,7 @@ paths_llama_code:
   - /U_20240603_ZSH_SMIL/LLM/models--meta-llama--CodeLlama-70b-hf/snapshots/388132564ff6637a3febc199e63aedc967f126ee
   - Codellama
   - 70
-paths_llama_code_instruct:
+llama_code_instruct:
 - - llamaCode_instruct_7b
   - /U_20240603_ZSH_SMIL/LLM/models--meta-llama--CodeLlama-7b-Instruct-hf/snapshots/4ce0c40b2ea823bd1d8f1f3fd5bc8a7e80d749bc
   - Codellama
@@ -57,7 +57,7 @@ paths_llama_code_instruct:
   - /U_20240603_ZSH_SMIL/LLM/models--meta-llama--CodeLlama-70b-Instruct-hf/snapshots/2826050dce6c8271bb9f667083b64e8254bd374f
   - Codellama
   - 70
-paths_llama_code_python:
+llama_code_python:
 - - llamaCode_python_7b
   - /U_20240603_ZSH_SMIL/LLM/models--meta-llama--CodeLlama-7b-Python-hf/snapshots/b97340ccba60c3ccaf91882ffe470a1bbc32e32c
   - Codellama
@@ -74,7 +74,7 @@ paths_llama_code_python:
   - /U_20240603_ZSH_SMIL/LLM/models--meta-llama--CodeLlama-70b-Python-hf/snapshots/b916062ff81cbd5d51efe623b1b3f6ee3b07b7e6
   - Codellama
   - 70
-paths_qwen_1.5:
+qwen_1.5:
 - - qwen_1.5_0.5b
   - /U_20240603_ZSH_SMIL/LLM/models--Qwen--Qwen1.5-0.5B/snapshots/8f445e3628f3500ee69f24e1303c9f10f5342a39/
   - qwen_1.5
@@ -131,7 +131,7 @@ paths_qwen_1.5:
   - /U_20240603_ZSH_SMIL/LLM/models--Qwen--Qwen1.5-72B-Chat/snapshots/d341a6f2cb937e7a830ecbe3ab7b87215bc3a6b0
   - qwen_1.5
   - 72
-paths_qwen_1:
+qwen_1:
 - - qwen_1_1.8b
   - /U_20240603_ZSH_SMIL/LLM/models--Qwen--Qwen-1_8B/snapshots/fa6e214ccbbc6a55235c26ef406355b6bfdf5eed
   - qwen_1

@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+import scipy.integrate as integrate
 
 def extract_token_features(model_output:dir = None, method:str = None):
     """
@@ -42,11 +43,37 @@ def calculate_distance_matrixs(token_features:torch.Tensor, method:str = None):
         assert similarity_assert, f"CosineSim's calculation result has an error"
         
         # Distance
-        distance_matrixs = 1 - similarity_matrix 
-        distance_assert = torch.all((distance_matrixs >= 0.0) & (distance_matrixs <= 2.0)) # Distance belong to  [0,2]
+        distance_matrixs = (1 - similarity_matrix) / 2
+        distance_assert = torch.all((distance_matrixs >= 0.0) & (distance_matrixs <= 1.0)) # Distance belong to  [0,1]
         assert distance_assert, f"Distance matrix's calculation result has an error"
     else:
         raise ValueError(f"Currently method:{method} not supported")
 
     assert len(distance_matrixs.shape) == 3 and distance_matrixs.shape[-1] == distance_matrixs.shape[-2],f"Token_features's shape {distance_matrixs.shape} is not like [batch_size,num_tokens,num_tokens] "
     return distance_matrixs
+
+def threshold_func(gamma: float = 1.0, epsilon = 1e-7, x: torch.tensor = None):
+    """
+    get num of value (epsilon <= x <= gamma)
+    """
+    assert gamma > epsilon, f"Gamma {gamma} should be greater than epsilon {epsilon}"
+    ones = (x >= epsilon) & (x <= gamma)# Distance belong to  [epsilon, gamma]
+    y = torch.sum(ones)
+    return y.item()
+
+def calculate_gamma_emergency_index(gamma, epsilon, x, num_tokens):
+    return threshold_func(gamma, epsilon, x) / (num_tokens * (num_tokens -1))
+
+def integrate_func(func,lower,upper,args):
+    result, error = integrate.quad(func, lower, upper, args=args)
+    return result
+
+def calculate_emergency_index(distance_matrixs, gamma: float = 1.0 ):
+    num_tokens = distance_matrixs.shape[-1]
+    if num_tokens == 1:
+        return 0
+    epsilon = 1e-7
+    x = distance_matrixs.reshape(-1)
+    gamma_emergency_index = calculate_gamma_emergency_index(gamma, epsilon, x, num_tokens)
+    emergency_index = integrate_func(calculate_gamma_emergency_index,lower=epsilon,upper=1.0,args=(epsilon,x,num_tokens))
+    return gamma_emergency_index, emergency_index
