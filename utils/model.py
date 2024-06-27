@@ -26,6 +26,7 @@ def load_model_tokenizer(model_config=None,half_models=['32b','34b','70b','72b']
     tokenizer.pad_token = tokenizer.eos_token
     config = AutoConfig.from_pretrained(model_config[0], output_attentions=True, attn_implementation="eager", trust_remote_code=True)
     if elements_in_path(model_config[0],half_models):
+        print("Loading model in half mode")
         model = AutoModelForCausalLM.from_pretrained(model_config[0], device_map="auto", torch_dtype=torch.float16, config=config, trust_remote_code=True)
     else:
         model = AutoModelForCausalLM.from_pretrained(model_config[0], device_map="auto", config=config,trust_remote_code=True)
@@ -56,11 +57,23 @@ def generate_model_output(model:AutoModelForCausalLM, tokenizer:AutoTokenizer, i
         attention_mask = inputs['attention_mask'].cuda()
         
         generate = model.generate(input_ids, attention_mask=attention_mask, generation_config=gen_config)
-        generated_text = tokenizer.batch_decode(generate['sequences'], skip_special_tokens=True)
+        hidden_states = []
+        
+        # Cuda OOM issues: hidden_states may be too large, unable to convert to cpu at once
+        for hidden_state in generate["hidden_states"][0]:
+            hidden_states.append(hidden_state.cpu())
+            del hidden_state
+        attentions = []
+        for attention in generate['attentions'][0]:
+            attentions.append(attention.cpu())
+            del attention
+
+        generated_text = tokenizer.batch_decode(generate['sequences'], skip_special_tokens=True)[0]
         model_output = {
-            "text": generated_text[0],
+            "text": generated_text,
             "input_ids": input_ids.cpu(), # shape = [batch_size,num_tokens]
-            "attentions": torch.stack(generate['attentions'][0]).detach().cpu(), # shape = [num_layers,batch_size,num_heads,num_tokens,num_tokens]
-            "hidden_states": torch.stack(generate["hidden_states"][0]).detach().cpu() # shape = [num_layers,batch_size,num_tokens,token_dim]
+            "attentions": torch.stack(attentions), # shape = [num_layers,batch_size,num_heads,num_tokens,num_tokens]
+            "hidden_states": torch.stack(hidden_states) # shape = [num_layers,batch_size,num_tokens,token_dim]
         }
+        del generate
         return model_output

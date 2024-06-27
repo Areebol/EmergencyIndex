@@ -15,11 +15,12 @@ if __name__ == "__main__":
     parser.add_argument("--extract_method", default="FinalOutput", choices=["FinalOutput"],help="method used for extraction")
     parser.add_argument("--distance_method", default="CosineSim", choices=["CosineSim"],help="method used for distance matrix calculation")
     parser.add_argument("--model_name", default="qwen_1.5", type=str,help="LLM model family")
-    parser.add_argument("--model_type", default="0.5b", type=str,help="LLM model type")
+    parser.add_argument("--model_type", default="14b", type=str,help="LLM model type")
     parser.add_argument("--dataset", default="HC3", choices=["HC3","Xsum"], type=str,help="DataSet")
     parser.add_argument("--dataset_size", default=200, type=int,help="DataSet size")
     parser.add_argument("--epsilon", default=1e-7, type=float,help="emergency index epsilon")
-    parser.add_argument("--gamma", default=0.5, type=float,help="emergency index gamma")
+    parser.add_argument("--gamma", default=0.2, type=float,help="emergency index gamma")
+    parser.add_argument("--wandb_mode", default="online", choices=["offline","online"],help="Wandb log mode")
     
     args = parser.parse_args()
     
@@ -43,7 +44,7 @@ if __name__ == "__main__":
     
     # wandb run
     wandb.login(key=args.wandb_key)  # wandb api key
-    runs = wandb.init(project='EmergencyIndex',mode="online",save_code=True,
+    runs = wandb.init(project='EmergencyIndex',mode=args.wandb_mode,save_code=True,
                       name=f"{args.model_name}_{args.model_type}_{args.dataset}_{args.extract_method}_{args.distance_method}",
                       config={
                           "dataset": args.dataset,
@@ -53,7 +54,6 @@ if __name__ == "__main__":
                           "featrue_extract_method": args.extract_method,
                           "cacluate_distance_method": args.distance_method,
                       })
-    table = wandb.Table(columns=["model_size", f"gamma_{args.gamma}_emergency_index","emergency_index","avg_distance"])
     with torch.no_grad():
         for batch_data in tqdm(dataloader):
             # Model output
@@ -78,9 +78,14 @@ if __name__ == "__main__":
                        "emergency_index": emergency_index,
                        "avg_distance": torch.mean(distance_matrixs).item(),
                        })
+            
     model_size = models_cfg[args.model_name][args.model_type][1]
-    table.add_data(model_size, meters["gamma_emergency_index"].avg, 
-                   meters["emergency_index"].avg,meters["avg_distance"].avg)
-    wandb.log({"Avg Datas": table})
-    # end
+    # wandb log avg
+    wandb.define_metric("model_size")
+    wandb.define_metric("avg/*", step_metric="model_size")
+    wandb.log({"model_size":model_size, 
+               f"avg/gamma_{args.gamma}_emergency_index":meters["gamma_emergency_index"].avg, 
+               "avg/emergency_index":meters["emergency_index"].avg,
+               "avg/avg_distance":meters["avg_distance"].avg})
+    # wandb end
     wandb.finish()
