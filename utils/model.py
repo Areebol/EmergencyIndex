@@ -16,19 +16,19 @@ def load_model_tokenizer(model_config=None,half_models=['32b','34b','70b','72b']
     """
     load model tokenizer from model config
     args:
-    model_config = [model_name, model_path, model_family, model_param_size]
+    model_config = [model_path,model_param_size]
     half_models = models need to be loaded as half mode
     ret:
     model
     tokenizer
     """
-    tokenizer = AutoTokenizer.from_pretrained(model_config[1], fast_tokenizer=True, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_config[0], fast_tokenizer=True, trust_remote_code=True)
     tokenizer.pad_token = tokenizer.eos_token
-    config = AutoConfig.from_pretrained(model_config[1], output_attentions=True, attn_implementation="eager", trust_remote_code=True)
+    config = AutoConfig.from_pretrained(model_config[0], output_attentions=True, attn_implementation="eager", trust_remote_code=True)
     if elements_in_path(model_config[0],half_models):
-        model = AutoModelForCausalLM.from_pretrained(model_config[1], device_map="auto", torch_dtype=torch.float16, config=config, trust_remote_code=True)
+        model = AutoModelForCausalLM.from_pretrained(model_config[0], device_map="auto", torch_dtype=torch.float16, config=config, trust_remote_code=True)
     else:
-        model = AutoModelForCausalLM.from_pretrained(model_config[1], device_map="auto", config=config,trust_remote_code=True)
+        model = AutoModelForCausalLM.from_pretrained(model_config[0], device_map="auto", config=config,trust_remote_code=True)
 
     model.config.end_token_id = tokenizer.eos_token_id
     model.config.pad_token_id = model.config.eos_token_id

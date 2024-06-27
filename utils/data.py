@@ -52,7 +52,7 @@ def calculate_distance_matrixs(token_features:torch.Tensor, method:str = None):
     assert len(distance_matrixs.shape) == 3 and distance_matrixs.shape[-1] == distance_matrixs.shape[-2],f"Token_features's shape {distance_matrixs.shape} is not like [batch_size,num_tokens,num_tokens] "
     return distance_matrixs
 
-def threshold_func(gamma: float = 1.0, epsilon = 1e-7, x: torch.tensor = None):
+def threshold_func(gamma, epsilon, x: torch.tensor = None):
     """
     get num of value (epsilon <= x <= gamma)
     """
@@ -68,11 +68,10 @@ def integrate_func(func,lower,upper,args):
     result, error = integrate.quad(func, lower, upper, args=args)
     return result
 
-def calculate_emergency_index(distance_matrixs, gamma: float = 1.0 ):
+def calculate_emergency_index(distance_matrixs, epsilon: float = 1e-7, gamma: float = 1.0 ):
     num_tokens = distance_matrixs.shape[-1]
     if num_tokens == 1:
         return 0
-    epsilon = 1e-7
     x = distance_matrixs.reshape(-1)
     gamma_emergency_index = calculate_gamma_emergency_index(gamma, epsilon, x, num_tokens)
     emergency_index = integrate_func(calculate_gamma_emergency_index,lower=epsilon,upper=1.0,args=(epsilon,x,num_tokens))
