@@ -11,16 +11,17 @@ from torch.utils.data import DataLoader
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--wandb_key', default='aecdc69b1a817efc605df2d5be9dd7face113d04', help='wandb auth api key')
+    parser.add_argument("--wandb_mode", default="online", choices=["offline","online"],help="Wandb log mode")
     parser.add_argument("--models_cfg", default="./config/models_pz.yaml", help="model's weight config")
     parser.add_argument("--extract_method", default="FinalOutput", choices=["FinalOutput"],help="method used for extraction")
     parser.add_argument("--distance_method", default="CosineSim", choices=["CosineSim"],help="method used for distance matrix calculation")
     parser.add_argument("--model_name", default="qwen_1.5", type=str,help="LLM model family")
-    parser.add_argument("--model_type", default="14b", type=str,help="LLM model type")
+    parser.add_argument("--model_type", default="0.5b", type=str,help="LLM model type")
     parser.add_argument("--dataset", default="HC3", choices=["HC3","Xsum"], type=str,help="DataSet")
     parser.add_argument("--dataset_size", default=200, type=int,help="DataSet size")
-    parser.add_argument("--epsilon", default=1e-7, type=float,help="emergency index epsilon")
-    parser.add_argument("--gamma", default=0.2, type=float,help="emergency index gamma")
-    parser.add_argument("--wandb_mode", default="online", choices=["offline","online"],help="Wandb log mode")
+    parser.add_argument("--max_num_input_tokens", default=1200, type=int,help="Max num of input otkens be allowed")
+    parser.add_argument("--epsilon", default=1e-10, type=float,help="emergency index epsilon")
+    parser.add_argument("--gammas", default=[0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9], type=list,help="emergency index gamma")
     
     args = parser.parse_args()
     
@@ -34,12 +35,12 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"Currently not supported {args.dataset}")
     
-    dataset = dataset.select(range(args.dataset_size)).map(preprocess,batched=False)
+    dataset = dataset.select(range(int(args.dataset_size * 1.5))).map(preprocess,batched=False)
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2)
 
     # Avg meters
-    meters = {"gamma_emergency_index":AverageMeter(),
-              "emergency_index":AverageMeter(),
+    gamma_meters = {gamma:AverageMeter() for gamma in args.gammas}
+    meters = {"emergency_index":AverageMeter(),
               "avg_distance":AverageMeter()}
     
     # wandb run
@@ -50,12 +51,21 @@ if __name__ == "__main__":
                           "dataset": args.dataset,
                           "model": f"{args.model_name}_{args.model_type}",
                           "epsilon": args.epsilon,
-                          "gamma": args.gamma,
                           "featrue_extract_method": args.extract_method,
                           "cacluate_distance_method": args.distance_method,
                       })
+    step = 0
     with torch.no_grad():
-        for batch_data in tqdm(dataloader):
+        for batch_idx, batch_data in enumerate(dataloader):
+            # Flitering out some larger data due to CUDA memeory
+            num_input_tokens = get_num_input_tokens(tokenizer=tokenizer,input_tokens=batch_data["input_tokens"])
+            if num_input_tokens > args.max_num_input_tokens:
+                continue
+            else:
+                step += 1
+                print(f"{args.model_name}_{args.model_type}:[{step}/{args.dataset_size}]")
+            if step >= args.dataset_size:
+                break
             # Model output
             model_output = generate_model_output(model=model,tokenizer=tokenizer,
                                         input_tokens=batch_data["input_tokens"]) # dict = ["text","input_ids","attentions","hidden_states"]
@@ -67,25 +77,33 @@ if __name__ == "__main__":
             distance_matrixs = calculate_distance_matrixs(token_features, args.distance_method) # shape = [batch_size,num_tokens,num_tokens]
 
             # Emergency Index
-            gamma_emergency_index, emergency_index = calculate_emergency_index(distance_matrixs, args.epsilon, args.gamma) # float value belong to [0,1]
+            emergency_index = calculate_emergency_index(distance_matrixs, args.epsilon) # float value belong to [0,1]
+            gamma_emergency_indexs = {gamma:calculate_gamma_emergency_index(distance_matrixs, args.epsilon, gamma) 
+                for gamma in args.gammas} # float values belong to [0,1]
             
             # Update + Log
-            meters["gamma_emergency_index"].update(gamma_emergency_index)
             meters["emergency_index"].update(emergency_index)
             meters["avg_distance"].update(torch.mean(distance_matrixs).item())
-            
-            wandb.log({f"gamma_{args.gamma}_emergency_index": gamma_emergency_index, 
-                       "emergency_index": emergency_index,
+            for gamma in args.gammas:
+                gamma_meters[gamma].update(gamma_emergency_indexs[gamma])
+            cur_log = {**{"emergency_index": emergency_index,
                        "avg_distance": torch.mean(distance_matrixs).item(),
-                       })
-            
+                       "num_input_tokens": num_input_tokens,
+                       },
+                       **{f"gamma_{gamma}_emergency_index":gamma_emergency_indexs[gamma]
+                       for gamma in args.gammas}}
+            wandb.log(cur_log)
+                        
     model_size = models_cfg[args.model_name][args.model_type][1]
     # wandb log avg
     wandb.define_metric("model_size")
     wandb.define_metric("avg/*", step_metric="model_size")
-    wandb.log({"model_size":model_size, 
-               f"avg/gamma_{args.gamma}_emergency_index":meters["gamma_emergency_index"].avg, 
+    avg_log = {**{"model_size":model_size, 
                "avg/emergency_index":meters["emergency_index"].avg,
-               "avg/avg_distance":meters["avg_distance"].avg})
+               "avg/avg_distance":meters["avg_distance"].avg
+               },
+               **{f"avg/gamma_{gamma}_emergency_index":gamma_meters[gamma].avg
+                for gamma in args.gammas}}
+    wandb.log(avg_log)
     # wandb end
     wandb.finish()

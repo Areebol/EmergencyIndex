@@ -14,7 +14,7 @@ def extract_token_features(model_output:dir = None, method:str = None):
     # Temp code
     if method == "FinalOutput":
         assert len(model_output["hidden_states"].shape) == 4, f"Hidden_states' shape {model_output["hidden_states"].shape} is not like [num_layers,batch_size,num_heads,num_tokens,num_tokens]"
-        token_features = model_output["hidden_states"][-1,:,:,:] # shape = [batch_size,num_tokens,token_dim]
+        token_features = model_output["hidden_states"][-1,:,:,:] # shape = [num_layers,batch_size,num_tokens,token_dim]
     # elif method == "b":
     #     token_features = model_output["hidden_states"][-1,:,:,:] # shape = [batch_size,num_tokens,token_dim]
     else:
@@ -42,9 +42,9 @@ def calculate_distance_matrixs(token_features:torch.Tensor, method:str = None):
         similarity_assert = torch.all((similarity_matrix >= -1.0) & (similarity_matrix <= 1.0)) # CosineSim belong to [-1,1]
         assert similarity_assert, f"CosineSim's calculation result has an error"
         
-        # Distance
-        distance_matrixs = (1 - similarity_matrix) / 2
-        distance_assert = torch.all((distance_matrixs >= 0.0) & (distance_matrixs <= 1.0)) # Distance belong to  [0,1]
+        # Distance belong to [0,2], but only integrate on [0,1]
+        distance_matrixs = (1 - similarity_matrix)
+        distance_assert = torch.all((distance_matrixs >= 0.0) & (distance_matrixs <= 2.0)) # Distance belong to  [0,2]
         assert distance_assert, f"Distance matrix's calculation result has an error"
     else:
         raise ValueError(f"Currently method:{method} not supported")
@@ -61,18 +61,24 @@ def threshold_func(gamma, epsilon, x: torch.tensor = None):
     y = torch.sum(ones)
     return y.item()
 
-def calculate_gamma_emergency_index(gamma, epsilon, x, num_tokens):
+def gamma_emergency_index_func(gamma, epsilon, x, num_tokens):
     return threshold_func(gamma, epsilon, x) / (num_tokens * (num_tokens -1))
 
 def integrate_func(func,lower,upper,args):
     result, error = integrate.quad(func, lower, upper, args=args)
     return result
 
-def calculate_emergency_index(distance_matrixs, epsilon: float = 1e-7, gamma: float = 1.0 ):
+def calculate_gamma_emergency_index(distance_matrixs, epsilon: float = 1e-10, gamma: float = 1.0 ):
+    num_tokens = distance_matrixs.shape[-1]
+    if num_tokens == 1:
+        return 0
+    x = distance_matrixs.reshape(-1) 
+    return gamma_emergency_index_func(gamma,epsilon,x,num_tokens)
+
+def calculate_emergency_index(distance_matrixs, epsilon: float = 1e-10):
     num_tokens = distance_matrixs.shape[-1]
     if num_tokens == 1:
         return 0
     x = distance_matrixs.reshape(-1)
-    gamma_emergency_index = calculate_gamma_emergency_index(gamma, epsilon, x, num_tokens)
-    emergency_index = integrate_func(calculate_gamma_emergency_index,lower=epsilon,upper=1.0,args=(epsilon,x,num_tokens))
-    return gamma_emergency_index, emergency_index
+    emergency_index = integrate_func(gamma_emergency_index_func,lower=epsilon,upper=1.0,args=(epsilon,x,num_tokens))
+    return emergency_index

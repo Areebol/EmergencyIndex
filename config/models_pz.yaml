@@ -41,3 +41,66 @@ qwen_1.5:
   chat_72b:
   - /U_20240603_ZSH_SMIL/LLM/models--Qwen--Qwen1.5-72B-Chat/snapshots/d341a6f2cb937e7a830ecbe3ab7b87215bc3a6b0
   - 72
+llama_2:
+  7b:
+  - /U_20240603_ZSH_SMIL/LLM/models--meta-llama--Llama-2-7b-hf/snapshots/01c7f73d771dfac7d292323805ebc428287df4f9
+  - 7
+  chat_7b:
+  - /U_20240603_ZSH_SMIL/LLM/models--meta-llama--Llama-2-7b-chat-hf/snapshots/f5db02db724555f92da89c216ac04704f23d4590
+  - 7
+  13b:
+  - /U_20240603_ZSH_SMIL/LLM/models--meta-llama--Llama-2-13b-hf/snapshots/5c31dfb671ce7cfe2d7bb7c04375e44c55e815b1
+  - 13
+  chat_13b:
+  - /U_20240603_ZSH_SMIL/LLM/models--meta-llama--Llama-2-13b-chat-hf/snapshots/a2cb7a712bb6e5e736ca7f8cd98167f81a0b5bd8
+  - 13
+  70b:
+  - /U_20240603_ZSH_SMIL/LLM/models--meta-llama--Llama-2-70b-hf/snapshots/3aba440b59558f995867ba6e1f58f21d0336b5bb
+  - 70
+  chat_70b:
+  - /U_20240603_ZSH_SMIL/LLM/Llama-2-70b-chat-hf
+  - 70
+qwen_1:
+  1.8b:
+  - 1.8
+  - /U_20240603_ZSH_SMIL/LLM/models--Qwen--Qwen-1_8B/snapshots/fa6e214ccbbc6a55235c26ef406355b6bfdf5eed
+  chat_1.8b:
+  - /U_20240603_ZSH_SMIL/LLM/models--Qwen--Qwen-1_8B-Chat/snapshots/1d0f68de57b88cfde81f3c3e537f24464d889081
+  - 1.8
+  7b:
+  - /U_20240603_ZSH_SMIL/LLM/models--Qwen--Qwen-7B/snapshots/ef3c5c9c57b252f3149c1408daf4d649ec8b6c85
+  - 7
+  chat_7b:
+  - /U_20240603_ZSH_SMIL/LLM/models--Qwen--Qwen-7B-Chat/snapshots/93a65d34827a3cc269b727e67004743b723e2f83
+  - 7
+  14b:
+  - /U_20240603_ZSH_SMIL/LLM/models--Qwen--Qwen-14B/snapshots/c4051215126d906ac22bb67fe5edb39a921cd831
+  - 14
+  chat_14b:
+  - /U_20240603_ZSH_SMIL/LLM/models--Qwen--Qwen-14B-Chat/snapshots/cdaff792392504e679496a9f386acf3c1e4333a5
+  - 14
+  72b:
+  - /U_20240603_ZSH_SMIL/LLM/models--Qwen--Qwen-72B/snapshots/6dae9c86d4f42c3be60ffb525f784ee1991605cb
+  - 72
+  chat_72b:
+  - /U_20240603_ZSH_SMIL/LLM/models--Qwen--Qwen-72B-Chat/snapshots/6eb5569e56644ea662b048e029de9d093e97d4b6
+  - 72
+# opt:
+#  125m:
+#  - /U_20240603_ZSH_SMIL/LLM/models--facebook--opt-125m/snapshots/27dcfa74d334bc871f3234de431e71c6eeba5dd6/
+#  - 0.125
+#  sft_125m:
+#  - /U_20240603_ZSH_SMIL/LLM/models--girish17019--opt-125m-alpaca-sft/snapshots/41931d3587cc7c7cb85083c0ec55b9bfbe8fe16e/
+#  - 0.125
+#  350m:
+#  - /U_20240603_ZSH_SMIL/LLM/models--facebook--opt-350m/snapshots/08ab08cc4b72ff5593870b5d527cf4230323703c/
+#  - 0.35
+#  sft_350m:
+#  - /U_20240603_ZSH_SMIL/LLM/models--aarunsrinivas--mia-sft-opt-350m/snapshots/32ea22f5cc6347a096c8a15a57c04714b57d0d67/
+#  - 0.35
+#  1.3b:
+#  - /U_20240603_ZSH_SMIL/LLM/models--facebook--opt-1.3b/snapshots/3f5c25d0bc631cb57ac65913f76e22c2dfb61d62/
+#  - 1.3
+#  sft_1.3b:
+#  - /U_20240603_ZSH_SMIL/LLM/models--aarunsrinivas--mia-sft-opt-1.3b/snapshots/142ec7d069ab5e86d51fe4f602a3cab6a8e3a5da/
+#  - 1.3

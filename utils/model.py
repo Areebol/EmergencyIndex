@@ -2,17 +2,7 @@
 from transformers import AutoConfig, AutoTokenizer, AutoModelForCausalLM, TextStreamer, GenerationConfig
 import torch
 
-def elements_in_path(path,elements):
-    """
-    path: 
-    elements: 
-    """
-    for element in elements:
-        if element in path:
-            return True
-    return False
-
-def load_model_tokenizer(model_config=None,half_models=['32b','34b','70b','72b']):
+def load_model_tokenizer(model_config=None,half_models=[32,34,70,72]):
     """
     load model tokenizer from model config
     args:
@@ -25,7 +15,7 @@ def load_model_tokenizer(model_config=None,half_models=['32b','34b','70b','72b']
     tokenizer = AutoTokenizer.from_pretrained(model_config[0], fast_tokenizer=True, trust_remote_code=True)
     tokenizer.pad_token = tokenizer.eos_token
     config = AutoConfig.from_pretrained(model_config[0], output_attentions=True, attn_implementation="eager", trust_remote_code=True)
-    if elements_in_path(model_config[0],half_models):
+    if model_config[1] in half_models:
         print("Loading model in half mode")
         model = AutoModelForCausalLM.from_pretrained(model_config[0], device_map="auto", torch_dtype=torch.float16, config=config, trust_remote_code=True)
     else:
@@ -77,3 +67,10 @@ def generate_model_output(model:AutoModelForCausalLM, tokenizer:AutoTokenizer, i
         }
         del generate
         return model_output
+    
+def get_num_input_tokens(tokenizer:AutoTokenizer, input_tokens:str):
+    with torch.no_grad():
+        inputs = tokenizer(input_tokens, padding=False, return_tensors='pt')
+        num_input_tokens = inputs['input_ids'].shape[-1]
+        del inputs
+        return num_input_tokens
