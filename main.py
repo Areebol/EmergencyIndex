@@ -15,11 +15,12 @@ if __name__ == "__main__":
     parser.add_argument("--models_cfg", default="./config/models_pz.yaml", help="model's weight config")
     parser.add_argument("--extract_method", default="FinalOutput", choices=["FinalOutput"],help="method used for extraction")
     parser.add_argument("--distance_method", default="CosineSim", choices=["CosineSim"],help="method used for distance matrix calculation")
+    parser.add_argument("--generate_method", default=False, type = bool,help="True use model.generate(), otherwise use model.__call__()")
     parser.add_argument("--model_name", default="qwen_1.5", type=str,help="LLM model family")
     parser.add_argument("--model_type", default="0.5b", type=str,help="LLM model type")
     parser.add_argument("--dataset", default="HC3", choices=["HC3","Xsum"], type=str,help="DataSet")
     parser.add_argument("--dataset_size", default=200, type=int,help="DataSet size")
-    parser.add_argument("--max_num_input_tokens", default=1200, type=int,help="Max num of input otkens be allowed")
+    parser.add_argument("--max_num_input_tokens", default=1000, type=int,help="Max num of input otkens be allowed")
     parser.add_argument("--epsilon", default=1e-10, type=float,help="emergency index epsilon")
     parser.add_argument("--gammas", default=[0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9], type=list,help="emergency index gamma")
     
@@ -46,14 +47,8 @@ if __name__ == "__main__":
     # wandb run
     wandb.login(key=args.wandb_key)  # wandb api key
     runs = wandb.init(project='EmergencyIndex',mode=args.wandb_mode,save_code=True,
-                      name=f"{args.model_name}_{args.model_type}_{args.dataset}_{args.extract_method}_{args.distance_method}",
-                      config={
-                          "dataset": args.dataset,
-                          "model": f"{args.model_name}_{args.model_type}",
-                          "epsilon": args.epsilon,
-                          "featrue_extract_method": args.extract_method,
-                          "cacluate_distance_method": args.distance_method,
-                      })
+                      name=f"{args.model_name}_{args.model_type}_{args.dataset}_{args.extract_method}_{args.distance_method}")
+    wandb.config.update(args)
     step = 0
     with torch.no_grad():
         for batch_idx, batch_data in enumerate(dataloader):
@@ -68,7 +63,8 @@ if __name__ == "__main__":
                 break
             # Model output
             model_output = generate_model_output(model=model,tokenizer=tokenizer,
-                                        input_tokens=batch_data["input_tokens"]) # dict = ["text","input_ids","attentions","hidden_states"]
+                                        input_tokens=batch_data["input_tokens"],
+                                        generate_method=args.generate_method) # dict = ["input_ids","attentions","hidden_states"]
             
             # Extract Features
             token_features = extract_token_features(model_output, args.extract_method) # shape = [batch_size,num_tokens,token_dim]

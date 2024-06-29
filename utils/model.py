@@ -26,7 +26,7 @@ def load_model_tokenizer(model_config=None,half_models=[32,34,70,72]):
     model.resize_token_embeddings(len(tokenizer))
     return model,tokenizer
 
-def generate_model_output(model:AutoModelForCausalLM, tokenizer:AutoTokenizer, input_tokens:str, max_new_tokens:int=1):
+def generate_model_output(model:AutoModelForCausalLM, tokenizer:AutoTokenizer, input_tokens:str,generate_method=False):
     """
     generate model output used input_tokens
     args:
@@ -34,39 +34,52 @@ def generate_model_output(model:AutoModelForCausalLM, tokenizer:AutoTokenizer, i
     model
     input_tokens = model_input
     ret:
-    model_output = dict["text","input_ids","attentions","hidden_states"] all in cpu
+    model_output = dict["input_ids","attentions","hidden_states"] all in cpu
     """
-    gen_config = GenerationConfig(do_sample=False, num_beams=1,eos_token_id=tokenizer.eos_token_id,
-                                  pad_token_id=tokenizer.eos_token_id,max_new_tokens=max_new_tokens, 
-                                  output_attentions=True, return_dict_in_generate=True,
-                                  output_hidden_states=True)
-    with torch.no_grad():
-        inputs = tokenizer(input_tokens, padding=False, return_tensors='pt')
-        input_ids = inputs['input_ids'].cuda()
-        assert input_ids.shape[0] == 1, "Currently only supported batch size == 1!"
-        attention_mask = inputs['attention_mask'].cuda()
-        
-        generate = model.generate(input_ids, attention_mask=attention_mask, generation_config=gen_config)
-        hidden_states = []
-        
-        # Cuda OOM issues: hidden_states may be too large, unable to convert to cpu at once
-        for hidden_state in generate["hidden_states"][0]:
-            hidden_states.append(hidden_state.cpu())
-            del hidden_state
-        attentions = []
-        for attention in generate['attentions'][0]:
-            attentions.append(attention.cpu())
-            del attention
+    inputs = tokenizer(input_tokens, padding=False, return_tensors='pt')
+    input_ids = inputs['input_ids'].cuda()
+    assert input_ids.shape[0] == 1, "Currently only supported batch size == 1!"
+    attention_mask = inputs['attention_mask'].cuda()
+    
+    if generate_method: # Use generate strategy
+        gen_config = GenerationConfig(do_sample=False, 
+                                        num_beams=1,
+                                        eos_token_id=tokenizer.eos_token_id,
+                                        pad_token_id=tokenizer.eos_token_id,
+                                        max_new_tokens=1, 
+                                        return_dict_in_generate=True,
+                                        output_attentions=True, 
+                                        output_hidden_states=True)
+        output = model.generate(input_ids, attention_mask=attention_mask, generation_config=gen_config)
+        output_hidden_states = output["hidden_states"][0] # tuple of (num_layers + 1) * [batch_size, num_tokens, token_dim]
+        output_attentions = output['attentions'][0] # tuple of num_layers * [batch_size, num_heads,num_tokens, num_tokens]
+    else: # Raw output
+        output = model(input_ids, 
+                        attention_mask=attention_mask,
+                        output_attentions=True, 
+                        output_hidden_states=True)
+        output_hidden_states = output.hidden_states # tuple of (num_layers + 1) * [batch_size, num_tokens, token_dim]
+        output_attentions = output.attentions # tuple of num_layers * [batch_size, num_heads,num_tokens, num_tokens]    
+    
+    # Cuda OOM issues: hidden_states may be too large, unable to convert to cpu at once
+    hidden_states = []
+    for hidden_state in output_hidden_states:
+        assert len(hidden_state.shape) == 3, f"hidden_state's shape {hidden_state.shape} should be like [bs,num_tokens,token_dim]"
+        hidden_states.append(hidden_state.cpu())
+        del hidden_state
+    attentions = []
+    for attention in output_attentions:
+        assert len(attention.shape) == 4, f"attention's shape {attention.shape} should be like [bs,num_heads,num_tokens,num_tokens]"
+        attentions.append(attention.cpu())          
+        del attention
 
-        generated_text = tokenizer.batch_decode(generate['sequences'], skip_special_tokens=True)[0]
-        model_output = {
-            "text": generated_text,
-            "input_ids": input_ids.cpu(), # shape = [batch_size,num_tokens]
-            "attentions": torch.stack(attentions), # shape = [num_layers,batch_size,num_heads,num_tokens,num_tokens]
-            "hidden_states": torch.stack(hidden_states) # shape = [num_layers,batch_size,num_tokens,token_dim]
-        }
-        del generate
-        return model_output
+    model_output = {
+        "input_ids": input_ids.cpu(), # shape = [batch_size,num_tokens]
+        "attentions": torch.stack(attentions), # shape = [num_layers,batch_size,num_heads,num_tokens,num_tokens]
+        "hidden_states": torch.stack(hidden_states) # shape = [num_layers,batch_size,num_tokens,token_dim]
+    }
+    del output
+    return model_output
     
 def get_num_input_tokens(tokenizer:AutoTokenizer, input_tokens:str):
     with torch.no_grad():

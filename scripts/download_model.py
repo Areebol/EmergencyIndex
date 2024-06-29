@@ -1,3 +1,5 @@
+import os
+os.environ['HF_ENDPOINT']='https://hf-mirror.com'
 from huggingface_hub import snapshot_download
 import huggingface_hub
 
@@ -17,10 +19,10 @@ if __name__ == "__main__":
     # "Qwen/Qwen-72B",
     
     repo_ids = [
-                # "Qwen/Qwen1.5-72B",
-                # "Qwen/Qwen1.5-72B-Chat",
+                "Qwen/Qwen1.5-72B",
+                "Qwen/Qwen1.5-72B-Chat",
                 
-                # "meta-llama/Llama-2-70b-hf",
+                "meta-llama/Llama-2-70b-hf",
                 # "meta-llama/Llama-2-70b-chat-hf",
                 
                 # "facebook/opt-2.7b",

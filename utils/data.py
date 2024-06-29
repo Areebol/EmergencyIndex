@@ -1,4 +1,6 @@
 import torch
+import numpy as np
+import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import scipy.integrate as integrate
 
@@ -39,8 +41,8 @@ def calculate_distance_matrixs(token_features:torch.Tensor, method:str = None):
         num_tokens = similarity_matrix.size(1)
         diagonal_ones = torch.diag(torch.ones(num_tokens, device=similarity_matrix.device))
         similarity_matrix = similarity_matrix - torch.diag(torch.diagonal(similarity_matrix, dim1=-2, dim2=-1).squeeze(0)) + diagonal_ones
-        similarity_assert = torch.all((similarity_matrix >= -1.0) & (similarity_matrix <= 1.0)) # CosineSim belong to [-1,1]
-        assert similarity_assert, f"CosineSim's calculation result has an error"
+        num_similarity_error = sum(similarity_matrix[(similarity_matrix < -1.0)|(similarity_matrix > 1.0)]) # CosineSim belong to [-1,1]
+        assert num_similarity_error==0, f"CosineSim's calculation result has {num_similarity_error} error"
         
         # Distance belong to [0,2], but only integrate on [0,1]
         distance_matrixs = (1 - similarity_matrix)
@@ -52,17 +54,22 @@ def calculate_distance_matrixs(token_features:torch.Tensor, method:str = None):
     assert len(distance_matrixs.shape) == 3 and distance_matrixs.shape[-1] == distance_matrixs.shape[-2],f"Token_features's shape {distance_matrixs.shape} is not like [batch_size,num_tokens,num_tokens] "
     return distance_matrixs
 
-def threshold_func(gamma, epsilon, x: torch.tensor = None):
+def threshold_func(gamma:float, epsilon:float, x: np.ndarray):
     """
     get num of value (epsilon <= x <= gamma)
     """
     assert gamma > epsilon, f"Gamma {gamma} should be greater than epsilon {epsilon}"
     ones = (x >= epsilon) & (x <= gamma)# Distance belong to  [epsilon, gamma]
-    y = torch.sum(ones)
+    y = np.sum(ones)
     return y.item()
 
-def gamma_emergency_index_func(gamma, epsilon, x, num_tokens):
-    return threshold_func(gamma, epsilon, x) / (num_tokens * (num_tokens -1))
+def gamma_emergency_index_func(gamma:float, epsilon:float, distances: np.ndarray, num_tokens: int):
+    """
+    get gamma emergency index 
+    """
+    if num_tokens <= 1: # num_tokens <=1 means not distance matrixs available
+        return 0
+    return threshold_func(gamma, epsilon, distances) / (num_tokens * (num_tokens -1))
 
 def integrate_func(func,lower,upper,args):
     result, error = integrate.quad(func, lower, upper, args=args)
@@ -70,15 +77,26 @@ def integrate_func(func,lower,upper,args):
 
 def calculate_gamma_emergency_index(distance_matrixs, epsilon: float = 1e-10, gamma: float = 1.0 ):
     num_tokens = distance_matrixs.shape[-1]
-    if num_tokens == 1:
-        return 0
-    x = distance_matrixs.reshape(-1) 
-    return gamma_emergency_index_func(gamma,epsilon,x,num_tokens)
+    distances = distance_matrixs.numpy().reshape(-1)
+    return gamma_emergency_index_func(gamma,epsilon,distances,num_tokens)
 
 def calculate_emergency_index(distance_matrixs, epsilon: float = 1e-10):
     num_tokens = distance_matrixs.shape[-1]
-    if num_tokens == 1:
-        return 0
-    x = distance_matrixs.reshape(-1)
-    emergency_index = integrate_func(gamma_emergency_index_func,lower=epsilon,upper=1.0,args=(epsilon,x,num_tokens))
+    distances = distance_matrixs.numpy().reshape(-1)
+    emergency_index = integrate_func(gamma_emergency_index_func,lower=epsilon,upper=1.0,args=(epsilon,distances,num_tokens))
     return emergency_index
+
+# def plot_emergency_index(distance_matrixs, epsilon: float = 1e-10):
+    """
+    Plot image of Emergency Index func
+    """
+    # num_tokens = distance_matrixs.shape[-1]
+    # distances = distance_matrixs.numpy().reshape(-1)
+    # x = np.linspace(epsilon, 1.0, 400)
+    # y = gamma_emergency_index_func(x,epsilon,distances,num_tokens)
+
+    # plt.plot(x,y)
+    # plt.xlabel("gamma")
+    # plt.ylabel("gamma_emergency_index")
+    # plt.title("gamma_emergency_index_func(gamma)")
+    
