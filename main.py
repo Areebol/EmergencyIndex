@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--wandb_key', default='aecdc69b1a817efc605df2d5be9dd7face113d04', help='wandb auth api key')
-    parser.add_argument("--wandb_mode", default="online", choices=["offline","online"],help="Wandb log mode")
+    parser.add_argument("--wandb_mode", default="offline", choices=["offline","online"],help="Wandb log mode")
     parser.add_argument("--models_cfg", default="./config/models_pz.yaml", help="model's weight config")
     parser.add_argument("--extract_method", default="FinalOutput", choices=["FinalOutput"],help="method used for extraction")
     parser.add_argument("--distance_method", default="CosineSim", choices=["CosineSim"],help="method used for distance matrix calculation")
@@ -23,6 +23,7 @@ if __name__ == "__main__":
     parser.add_argument("--max_num_input_tokens", default=1000, type=int,help="Max num of input otkens be allowed")
     parser.add_argument("--epsilon", default=1e-10, type=float,help="emergency index epsilon")
     parser.add_argument("--gammas", default=[0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9], type=list,help="emergency index gamma")
+    parser.add_argument("--log_image_interval", default=10, type=int, help="Step interval to log Image")
     
     args = parser.parse_args()
     
@@ -57,7 +58,6 @@ if __name__ == "__main__":
             if num_input_tokens > args.max_num_input_tokens:
                 continue
             else:
-                step += 1
                 print(f"{args.model_name}_{args.model_type}:[{step}/{args.dataset_size}]")
             if step >= args.dataset_size:
                 break
@@ -88,7 +88,13 @@ if __name__ == "__main__":
                        },
                        **{f"gamma_{gamma}_emergency_index":gamma_emergency_indexs[gamma]
                        for gamma in args.gammas}}
+            if step % args.log_image_interval == 0:
+                # Plot emergency_index func Image
+                emergency_index_image = plot_emergency_index(distance_matrixs,args.epsilon)
+                cur_log = {**cur_log,
+                           "Image emergency_index":wandb.Image(emergency_index_image)}
             wandb.log(cur_log)
+            step += 1
                         
     model_size = models_cfg[args.model_name][args.model_type][1]
     # wandb log avg

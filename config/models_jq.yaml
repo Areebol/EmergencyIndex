@@ -1,0 +1,88 @@
+qwen_1:
+  1.8b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen-1_8B/snapshots/fa6e214ccbbc6a55235c26ef406355b6bfdf5eed
+  - 1.8
+  chat_1.8b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen-1_8B-Chat/snapshots/1d0f68de57b88cfde81f3c3e537f24464d889081
+  - 1.8
+  7b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen-7B/snapshots/ef3c5c9c57b252f3149c1408daf4d649ec8b6c85
+  - 7
+  chat_7b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen-7B-Chat/snapshots/93a65d34827a3cc269b727e67004743b723e2f83
+  - 7
+  14b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen-14B/snapshots/c4051215126d906ac22bb67fe5edb39a921cd831
+  - 14
+  chat_14b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen-14B-Chat/snapshots/cdaff792392504e679496a9f386acf3c1e4333a5
+  - 14
+  72b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen-72B/snapshots/6dae9c86d4f42c3be60ffb525f784ee1991605cb
+  - 72
+  chat_72b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen-72B-Chat/snapshots/6eb5569e56644ea662b048e029de9d093e97d4b6
+  - 72
+qwen_1.5:
+  0.5b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen1.5-0.5B/snapshots/8f445e3628f3500ee69f24e1303c9f10f5342a39
+  - 0.5
+  chat_0.5b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen1.5-0.5B-Chat/snapshots/f82bd3692de0283f4a4b31e06d164dd8467fb52e
+  - 0.5
+  1.8b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen1.5-1.8B/snapshots/7846de7ed421727b318d6605a0bfab659da2c067
+  - 1.8
+  chat_1.8b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen1.5-1.8B-Chat/snapshots/99f64b6aee2077dc9787342a0eb747fb8126b761
+  - 1.8
+  4b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen1.5-4B/snapshots/a66363a0c24e2155c561e4b53c658b1d3965474e
+  - 4
+  chat_4b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen1.5-4B-Chat/snapshots/6c387a3d44376e831b82d82715e08dca04344e3a
+  - 4
+  7b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen1.5-7B/snapshots/831096e3a59a0789a541415da25ef195ceb802fe
+  - 7
+  chat_7b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen1.5-7B-Chat/snapshots/5f4f5e69ac7f1d508f8369e977de208b4803444b
+  - 7
+  14b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen1.5-14B/snapshots/dce4b190d34470818e5bec2a92cb8233aaa02ca2
+  - 14
+  chat_14b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen1.5-14B-Chat/snapshots/9492b22871f43e975435455f5c616c77fe7a50ec
+  - 14
+  32b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen1.5-32B/snapshots/cefef80dc06a65f89d1d71d0adbc56d335ca2490
+  - 32
+  chat_32b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen1.5-32B-Chat/snapshots/0997b012af6ddd5465d40465a8415535b2f06cfc
+  - 32
+  72b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen1.5-72B/snapshots/93bac0d1ae83d50c43b1793e2d74a00dc43a4c36
+  - 72
+  chat_72b:
+  - /share/home/zhangshuhai/LLM/models--Qwen--Qwen1.5-72B-Chat/snapshots/d341a6f2cb937e7a830ecbe3ab7b87215bc3a6b0
+  - 72
+llama_2:
+  7b:
+  - /share/public/hf_models/Llama-2-7b-hf
+  - 7
+  chat_7b:
+  - /share/home/zhangshuhai/LLM/models--meta-llama--Llama-2-7b-chat-hf/snapshots/f5db02db724555f92da89c216ac04704f23d4590
+  - 7
+  13b:
+  - /share/public/hf_models/Llama-2-13b-hf
+  - 13
+  chat_13b:
+  - /share/home/zhangshuhai/LLM/models--meta-llama--Llama-2-13b-chat-hf/snapshots/a2cb7a712bb6e5e736ca7f8cd98167f81a0b5bd8
+  - 13
+  70b:
+  - /share/home/zhangshuhai/LLM/models--meta-llama--Llama-2-70b-hf/snapshots/3aba440b59558f995867ba6e1f58f21d0336b5bb
+  - 70
+  chat_70b:
+  - /share/home/zhangshuhai/LLM/models--meta-llama--Llama-2-70b-chat-hf/snapshots/e9149a12809580e8602995856f8098ce973d1080
+  - 70
+  

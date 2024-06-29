@@ -86,17 +86,25 @@ def calculate_emergency_index(distance_matrixs, epsilon: float = 1e-10):
     emergency_index = integrate_func(gamma_emergency_index_func,lower=epsilon,upper=1.0,args=(epsilon,distances,num_tokens))
     return emergency_index
 
-# def plot_emergency_index(distance_matrixs, epsilon: float = 1e-10):
+def plot_emergency_index(distance_matrixs, epsilon: float = 1e-10):
     """
     Plot image of Emergency Index func
     """
-    # num_tokens = distance_matrixs.shape[-1]
-    # distances = distance_matrixs.numpy().reshape(-1)
-    # x = np.linspace(epsilon, 1.0, 400)
-    # y = gamma_emergency_index_func(x,epsilon,distances,num_tokens)
-
-    # plt.plot(x,y)
-    # plt.xlabel("gamma")
-    # plt.ylabel("gamma_emergency_index")
-    # plt.title("gamma_emergency_index_func(gamma)")
+    num_tokens = distance_matrixs.shape[-1]
+    distances = distance_matrixs.numpy().reshape(-1)
+    gamma = np.linspace(2*epsilon, 1.0, 600)
+    gamma_emergency_index = [gamma_emergency_index_func(g,epsilon,distances,num_tokens)
+                             for g in gamma]
+    plt.figure()
+    plt.plot(gamma,gamma_emergency_index, label="gamma_emergency_index_func(gamma)")
+    plt.xlabel("gamma")
+    plt.ylabel("gamma emergency index")
+    plt.gca().spines['top'].set_color('none')
+    plt.gca().spines['right'].set_color('none')
+    plt.gca().spines['left'].set_color('black')
+    plt.gca().spines['bottom'].set_color('black')
+    plt.gca().tick_params(direction='in', length=6, width=0.5, colors='black', grid_color='gray', grid_alpha=0.7)
+    plt.grid(color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
+    plt.title("gamma_emergency_index_func(gamma)")
+    return plt
     
