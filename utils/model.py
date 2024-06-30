@@ -1,6 +1,8 @@
 # -*- coding: UTF-8 -*-
-from transformers import AutoConfig, AutoTokenizer, AutoModelForCausalLM, TextStreamer, GenerationConfig
+import os
 import torch
+from peft import PeftModel
+from transformers import AutoConfig, AutoTokenizer, AutoModelForCausalLM, TextStreamer, GenerationConfig
 
 def load_model_tokenizer(model_config=None,half_models=[32,34,70,72]):
     """
@@ -25,6 +27,50 @@ def load_model_tokenizer(model_config=None,half_models=[32,34,70,72]):
     model.config.pad_token_id = model.config.eos_token_id
     model.resize_token_embeddings(len(tokenizer))
     return model,tokenizer
+
+def load_lora_model_tokenizer(base_model_path,lora_model_base_dir,
+                              lora_model_name = 'checkpoint-1000'):
+    """
+    load model tokenizer from base model + lora dir
+    args:
+    ret:
+    model
+    tokenizer
+    """
+    tokenizer = AutoTokenizer.from_pretrained(base_model_path, fast_tokenizer=True, trust_remote_code=True)
+    tokenizer.pad_token = tokenizer.eos_token
+    config = AutoConfig.from_pretrained(base_model_path, output_attentions=True, attn_implementation="eager", trust_remote_code=True)
+    model = merge_lora_model(base_model_path,lora_model_base_dir,lora_model_name,config=config)
+
+    model.config.end_token_id = tokenizer.eos_token_id
+    model.config.pad_token_id = model.config.eos_token_id
+    model.resize_token_embeddings(len(tokenizer))
+    return model,tokenizer
+
+def merge_lora_model(base_model_path,lora_model_base_dir,
+                     lora_model_name = 'checkpoint-1000',
+                     config=None):
+    model_class, _ = (AutoModelForCausalLM, AutoTokenizer)
+    """
+    Merge base model + lora model
+    """
+    print(f"Loading LoRA for causal language mode\nBase model_path:{base_model_path}")
+    print(f"Lora model_path:{lora_model_base_dir}/{lora_model_name}")
+    base_model = model_class.from_pretrained(
+        base_model_path,
+        load_in_8bit=False,
+        torch_dtype=torch.float16,
+        trust_remote_code=True,
+        device_map="auto",
+        config = config,
+    )
+    new_model: PeftModel = PeftModel.from_pretrained(
+        base_model,
+        os.path.join(lora_model_base_dir, lora_model_name),
+        device_map="auto",
+        torch_dtype=torch.float16,
+    )
+    return new_model.merge_and_unload()
 
 def generate_model_output(model:AutoModelForCausalLM, tokenizer:AutoTokenizer, input_tokens:str,generate_method=False):
     """

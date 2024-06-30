@@ -80,6 +80,14 @@ def calculate_gamma_emergency_index(distance_matrixs, epsilon: float = 1e-10, ga
     distances = distance_matrixs.numpy().reshape(-1)
     return gamma_emergency_index_func(gamma,epsilon,distances,num_tokens)
 
+def calculate_gamma_distance(distance_matrixs, epsilon: float = 1e-10, gamma: float = 1.0 ):
+    """
+    Caculate Avg value (between epsilon and gamma) in distance
+    """
+    distances = distance_matrixs.numpy().reshape(-1)
+    x = distances[((distances>=epsilon) & (distances<=gamma))]
+    return sum(x) / len(x)
+
 def calculate_emergency_index(distance_matrixs, epsilon: float = 1e-10):
     num_tokens = distance_matrixs.shape[-1]
     distances = distance_matrixs.numpy().reshape(-1)
