@@ -27,6 +27,7 @@ if __name__ == "__main__":
     parser.add_argument("--lora", default=False,type=bool,help="True to use lora model")
     parser.add_argument("--lora_model_dir",default ="/U_20240603_ZSH_SMIL/MedicalGPT/outputs-sft-llama2-7b-epoch2-v1", type=str,help="Lora checkpoint's path")
     parser.add_argument("--lora_model_name",default="", type=str, help="Specify lora chckpoint version")
+    parser.add_argument("--lora_checkpoint_step",default=1, type=int, help="Specify lora chckpoint step")
     
     args = parser.parse_args()
     
@@ -124,10 +125,15 @@ if __name__ == "__main__":
     model_size = models_cfg[args.model_name][args.model_type][1]
     # wandb log avg
     wandb.define_metric("model_size")
-    wandb.define_metric("avg/*", step_metric="model_size")
+    if args.lora:
+        wandb.define_metric("checkpoint_step")
+        wandb.define_metric("avg/*", step_metric="checkpoint_step")
+    else:
+        wandb.define_metric("avg/*", step_metric="model_size")
     avg_log = {**{"model_size":model_size, 
-               "avg/emergency_index":meters["emergency_index"].avg,
-               "avg/avg_distance":meters["avg_distance"].avg
+                  "checkpoint_step":args.lora_checkpoint_step,
+                  "avg/emergency_index":meters["emergency_index"].avg,
+                  "avg/avg_distance":meters["avg_distance"].avg
                },
                **{f"avg/gamma_{gamma}_emergency_index":gamma_emregency_index_meters[gamma].avg
                 for gamma in args.gammas},
