@@ -8,10 +8,10 @@ from tqdm import tqdm
 from utils import *
 from torch.utils.data import DataLoader
 
-if __name__ == "__main__":
+def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--wandb_key', default='aecdc69b1a817efc605df2d5be9dd7face113d04', help='wandb auth api key')
-    parser.add_argument("--wandb_mode", default="online", choices=["offline","online"],help="Wandb log mode")
+    parser.add_argument("--wandb_mode", default="offline", choices=["offline","online"],help="Wandb log mode")
     parser.add_argument("--models_cfg", default="./config/models_pz.yaml", help="model's weight config")
     parser.add_argument("--extract_method", default="FinalOutput", choices=["FinalOutput"],help="method used for extraction")
     parser.add_argument("--distance_method", default="CosineSim", choices=["CosineSim"],help="method used for distance matrix calculation")
@@ -30,7 +30,9 @@ if __name__ == "__main__":
     parser.add_argument("--lora_checkpoint_step",default=1, type=int, help="Specify lora chckpoint step")
     
     args = parser.parse_args()
-    
+    return args
+
+def main(args):
     models_cfg = load_config(args.models_cfg)
     
     if args.lora: # Load finetune model by LORA
@@ -141,4 +143,8 @@ if __name__ == "__main__":
                 for gamma in args.gammas}}
     wandb.log(avg_log)
     # wandb end
-    wandb.finish()
+    wandb.finish()   
+    
+if __name__ == "__main__":
+    args = parse_args()
+    main(args)
