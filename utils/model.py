@@ -80,7 +80,7 @@ def generate_model_output(model:AutoModelForCausalLM, tokenizer:AutoTokenizer, i
     model
     input_tokens = model_input
     ret:
-    model_output = dict["input_ids","attentions","hidden_states"] all in cpu
+    model_output = dict["input_ids","attentions","hidden_states","logits"] all in cpu
     """
     inputs = tokenizer(input_tokens, padding=False, return_tensors='pt')
     input_ids = inputs['input_ids'].cuda()
@@ -95,17 +95,20 @@ def generate_model_output(model:AutoModelForCausalLM, tokenizer:AutoTokenizer, i
                                         max_new_tokens=1, 
                                         return_dict_in_generate=True,
                                         output_attentions=True, 
-                                        output_hidden_states=True)
+                                        output_hidden_states=True,
+                                        output_logits=True)
         output = model.generate(input_ids, attention_mask=attention_mask, generation_config=gen_config)
         output_hidden_states = output["hidden_states"][0] # tuple of (num_layers + 1) * [batch_size, num_tokens, token_dim]
         output_attentions = output['attentions'][0] # tuple of num_layers * [batch_size, num_heads,num_tokens, num_tokens]
+        output_logits = output['logits'][0].cpu().numpy().reshape((1,1,-1)) # only output the last token's logits [batch_size, vocab_size]; like Raw output's output_logits[:,-1,:]
     else: # Raw output
         output = model(input_ids, 
                         attention_mask=attention_mask,
                         output_attentions=True, 
                         output_hidden_states=True)
         output_hidden_states = output.hidden_states # tuple of (num_layers + 1) * [batch_size, num_tokens, token_dim]
-        output_attentions = output.attentions # tuple of num_layers * [batch_size, num_heads,num_tokens, num_tokens]    
+        output_attentions = output.attentions # tuple of num_layers * [batch_size, num_heads,num_tokens, num_tokens]   
+        output_logits = output.logits.cpu().numpy() # [batch_size, num_tokens, vocab_size] 
     
     # Cuda OOM issues: hidden_states may be too large, unable to convert to cpu at once
     hidden_states = []
@@ -122,7 +125,8 @@ def generate_model_output(model:AutoModelForCausalLM, tokenizer:AutoTokenizer, i
     model_output = {
         "input_ids": input_ids.cpu(), # shape = [batch_size,num_tokens]
         "attentions": torch.stack(attentions), # shape = [num_layers,batch_size,num_heads,num_tokens,num_tokens]
-        "hidden_states": torch.stack(hidden_states) # shape = [num_layers,batch_size,num_tokens,token_dim]
+        "hidden_states": torch.stack(hidden_states), # shape = [num_layers,batch_size,num_tokens,token_dim]
+        "logits": output_logits, # numpy array, shape = [batch_size, num_tokens, vocab_size]
     }
     del output
     return model_output

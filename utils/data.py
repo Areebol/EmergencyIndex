@@ -1,9 +1,15 @@
 import torch
+import pickle
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import entropy
 import torch.nn.functional as F
 import scipy.integrate as integrate
 
+def pkl_save(object, exp_dir, file):
+    with open(f'{exp_dir}/{file}', 'wb') as f:
+        pickle.dump(object, f)
+        
 def extract_token_features(model_output:dir = None, method:str = None):
     """
     extract token features from model output
@@ -94,6 +100,17 @@ def calculate_emergency_index(distance_matrixs, epsilon: float = 1e-10):
     emergency_index = integrate_func(gamma_emergency_index_func,lower=epsilon,upper=1.0,args=(epsilon,distances,num_tokens))
     return emergency_index
 
+def calculate_naive_entropy(probabilities: np.ndarray):
+    """
+    return entropy of probabilities
+    args: 
+    probabilities: shape = (bs, num_tokens, vocab_size)
+    ret:
+    entropys: shape = (num_tokens)
+    """
+    probabilities = np.squeeze(probabilities,0) # shape = (num_tokens, vocab_size)
+    return entropy(probabilities,axis=-1)
+
 def plot_emergency_index(distance_matrixs, epsilon: float = 1e-10):
     """
     Plot image of Emergency Index func
@@ -116,3 +133,17 @@ def plot_emergency_index(distance_matrixs, epsilon: float = 1e-10):
     plt.title("gamma_emergency_index_func(gamma)")
     return plt
     
+    
+def plot_curve(x, y, label, x_label, y_label):
+    plt.figure()
+    plt.plot(x,y, label=label)
+    plt.xlabel(x_label)
+    plt.ylabel( y_label)
+    plt.gca().spines['top'].set_color('none')
+    plt.gca().spines['right'].set_color('none')
+    plt.gca().spines['left'].set_color('black')
+    plt.gca().spines['bottom'].set_color('black')
+    plt.gca().tick_params(direction='in', length=6, width=0.5, colors='black', grid_color='gray', grid_alpha=0.7)
+    plt.grid(color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
+    plt.title(label)
+    return plt
