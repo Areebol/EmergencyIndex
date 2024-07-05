@@ -18,7 +18,7 @@ def parse_args():
     parser.add_argument("--generate_method", default=False, type = bool,help="True use model.generate(), otherwise use model.__call__()")
     parser.add_argument("--model_name", default="qwen_1.5", type=str,help="LLM model family")
     parser.add_argument("--model_type", default="0.5b", type=str,help="LLM model type")
-    parser.add_argument("--dataset", default="HC3", choices=["HC3","Xsum"], type=str,help="DataSet")
+    parser.add_argument("--dataset", default="Xsum", choices=["HC3","Xsum"], type=str,help="DataSet")
     parser.add_argument("--dataset_size", default=200, type=int,help="DataSet size")
     parser.add_argument("--max_num_input_tokens", default=1000, type=int,help="Max num of input otkens be allowed")
     parser.add_argument("--gammas", default=[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0], type=list,help="emergency index gamma")
@@ -27,6 +27,7 @@ def parse_args():
     parser.add_argument("--lora_model_dir",default ="/U_20240603_ZSH_SMIL/MedicalGPT/outputs-sft-llama2-7b-epoch2-v1", type=str,help="Lora checkpoint's path")
     parser.add_argument("--lora_model_name",default="", type=str, help="Specify lora chckpoint version")
     parser.add_argument("--lora_checkpoint_step",default=1, type=int, help="Specify lora chckpoint step")
+    parser.add_argument("--entropy_normalize",default=True, type=bool, help="Entropy compution need to divide log(k)")
     
     args = parser.parse_args()
     return args
@@ -40,12 +41,7 @@ def main(args):
     else: # Load original model
         model, tokenizer = load_model_tokenizer(models_cfg[args.model_name][args.model_type])
     
-    if args.dataset == "HC3":
-        dataset = load_dataset("Hello-SimpleAI/HC3","all",trust_remote_code=True,keep_in_memory=True)["train"]
-        def preprocess(example):
-            return {"input_tokens":f"Question:{example['question']} Human_answers:{example['human_answers'][0]}".replace(" .", ".").replace(" ? ","?").replace("\n","")}
-    else:
-        raise ValueError(f"Currently not supported {args.dataset}")
+    dataset, preprocess = load_ds_preprocess(args.dataset)
     
     dataset = dataset.select(range(int(args.dataset_size * 1.5))).map(preprocess,batched=False)
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2)
@@ -72,7 +68,7 @@ def main(args):
             if num_input_tokens > args.max_num_input_tokens:
                 continue
             else:
-                print(f"{args.model_name}_{args.model_type}_{args.lora_model_name}:[{step}/{args.dataset_size}]")
+                print(f"{args.model_name}_{args.model_type}_{args.lora_model_name}_{args.dataset}:[{step}/{args.dataset_size}]")
             if step >= args.dataset_size:
                 break
             # Model output
@@ -87,7 +83,7 @@ def main(args):
             pred_probs = softmax(logits,axis=-1) # shape = (bs, num_tokens, vocab_size)
             
             # Naive entropy
-            naive_entropys = calculate_naive_entropy(pred_probs) # shape = (num_tokens) value belong to [0,1]
+            naive_entropys = calculate_naive_entropy(pred_probs,normalize=args.entropy_normalize) # shape = (num_tokens) value belong to [0,1]
             
             # Update
             # Gammas: proportion of naive_entropys's avg

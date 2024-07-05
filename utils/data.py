@@ -100,7 +100,7 @@ def calculate_emergency_index(distance_matrixs, epsilon: float = 1e-10):
     emergency_index = integrate_func(gamma_emergency_index_func,lower=epsilon,upper=1.0,args=(epsilon,distances,num_tokens))
     return emergency_index
 
-def calculate_naive_entropy(probabilities: np.ndarray):
+def calculate_naive_entropy(probabilities: np.ndarray, normalize: bool = True):
     """
     return entropy of probabilities
     args: 
@@ -109,7 +109,12 @@ def calculate_naive_entropy(probabilities: np.ndarray):
     entropys: shape = (num_tokens)
     """
     probabilities = np.squeeze(probabilities,0) # shape = (num_tokens, vocab_size)
-    return entropy(probabilities,axis=-1)
+    if normalize:
+        vocab_size = probabilities.shape[1] # vocab_size
+        return entropy(probabilities,axis=-1) / np.log(vocab_size)
+    else:
+        return entropy(probabilities,axis=-1)
+        
 
 def plot_emergency_index(distance_matrixs, epsilon: float = 1e-10):
     """
