@@ -1,4 +1,5 @@
 import os
+import gc
 os.environ['HF_ENDPOINT']='https://hf-mirror.com'
 import torch
 import wandb
@@ -20,7 +21,7 @@ def parse_args():
     parser.add_argument("--model_type", default="0.5b", type=str,help="LLM model type")
     parser.add_argument("--dataset", default="Xsum", choices=["HC3","Xsum"], type=str,help="DataSet")
     parser.add_argument("--dataset_size", default=200, type=int,help="DataSet size")
-    parser.add_argument("--max_num_input_tokens", default=1000, type=int,help="Max num of input otkens be allowed")
+    parser.add_argument("--max_num_input_tokens", default=950, type=int,help="Max num of input otkens be allowed")
     parser.add_argument("--gammas", default=[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0], type=list,help="emergency index gamma")
     parser.add_argument("--log_image_interval", default=10, type=int, help="Step interval to log Image")
     parser.add_argument("--lora", default=False,type=bool,help="True to use lora model")
@@ -47,7 +48,6 @@ def main(args):
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2)
 
     # Avg meters: gammas[emergency_index, distance], others
-    # TODO naive avg entropy
     gammas_avg_NaEntropy_meters = {gamma:AverageMeter() for gamma in args.gammas}
     
     # Wandb Config
@@ -63,6 +63,8 @@ def main(args):
     step = 0
     with torch.no_grad():
         for batch_idx, batch_data in enumerate(dataloader):
+            gc.collect()
+            torch.cuda.empty_cache()
             # Flitering out some larger data due to CUDA memeory
             num_input_tokens = get_num_input_tokens(tokenizer=tokenizer,input_tokens=batch_data["input_tokens"])
             if num_input_tokens > args.max_num_input_tokens:
@@ -81,9 +83,11 @@ def main(args):
             
             # Predict probabilities
             pred_probs = softmax(logits,axis=-1) # shape = (bs, num_tokens, vocab_size)
+            del logits
             
             # Naive entropy
             naive_entropys = calculate_naive_entropy(pred_probs,normalize=args.entropy_normalize) # shape = (num_tokens) value belong to [0,1]
+            del pred_probs
             
             # Update
             # Gammas: proportion of naive_entropys's avg

@@ -1,7 +1,7 @@
 qwen_1:
   1.8b:
-  - 1.8
   - /U_20240603_ZSH_SMIL/LLM/models--Qwen--Qwen-1_8B/snapshots/fa6e214ccbbc6a55235c26ef406355b6bfdf5eed
+  - 1.8
   chat_1.8b:
   - /U_20240603_ZSH_SMIL/LLM/models--Qwen--Qwen-1_8B-Chat/snapshots/1d0f68de57b88cfde81f3c3e537f24464d889081
   - 1.8
@@ -64,7 +64,7 @@ qwen_1.5:
   - /U_20240603_ZSH_SMIL/LLM/models--Qwen--Qwen1.5-72B/snapshots/93bac0d1ae83d50c43b1793e2d74a00dc43a4c36
   - 72
   chat_72b:
-  - /U_20240603_ZSH_SMIL/LLM/models--Qwen--Qwen1.5-72B-Chat/snapshots/d341a6f2cb937e7a830ecbe3ab7b87215bc3a6b0
+  - /U_20240603_ZSH_SMIL/LLM/models--Qwen--Qwen1.5-72B-Chat/snapshots/879aaf3b10ce40acc8621bdf745d5d67caf39b4d
   - 72
 llama_2:
   7b:
