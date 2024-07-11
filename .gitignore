@@ -166,3 +166,6 @@ wandb/
 
 # vscode configs
 .vscode/
+
+# out file
+*out

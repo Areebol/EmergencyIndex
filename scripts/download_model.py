@@ -18,4 +18,4 @@ if __name__ == "__main__":
     # huggingface_hub.login('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')
     # huggingface_hub.login('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')
     huggingface_hub.login('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',add_to_git_credential=True)
-    # main()
+    main()

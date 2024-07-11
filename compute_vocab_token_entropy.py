@@ -52,40 +52,45 @@ def main(args):
                       name=f"{args.model_name}_{args.model_type}_{args.dataset}")
     wandb.config.update(args)
     
+    vocab_size = tokenizer.vocab_size
+    token_entropy_meter = AverageMeter()
+    
     with torch.no_grad():
-        gc.collect()
-        torch.cuda.empty_cache()
-        
-        # Load input tokens from vocab 
-        input_tokens = ...
-        
-        # Flitering out some larger data due to CUDA memeory
-        num_input_tokens = get_num_input_tokens(tokenizer=tokenizer,input_tokens=input_tokens)
-        print(f"{args.model_name}_{args.model_type}_{args.lora_model_name}:[{1}/{args.dataset_size}]")
-        # Model output
-        model_output = generate_model_output(model=model,tokenizer=tokenizer,
-                                    input_tokens=input_tokens,
-                                    generate_method=args.generate_method) # dict = ["input_ids","attentions","hidden_states", "logits"]
-        
-        # Model logits
-        logits = model_output["logits"] # shape = (bs, num_tokens, vocab_size)
-        
-        # Predict probabilities
-        pred_probs = softmax(logits,axis=-1) # shape = (bs, num_tokens, vocab_size)
-        del logits
-        
-        # Naive entropy
-        naive_entropys = calculate_naive_entropy(pred_probs,normalize=args.entropy_normalize) # shape = (num_tokens) value belong to [0,1]
-        del pred_probs
-        
-        # Gammas Log : avg_NaEntropy
-        cur_log = {**{"num_input_tokens": num_input_tokens, },
-                    }
-        wandb.log(cur_log)
+        for token_id in range(vocab_size):
+            gc.collect()
+            torch.cuda.empty_cache()
+            
+            input_tokens = tokenizer.decode(token_id)
+            
+            print(f"{args.model_name}_{args.model_type}_{args.lora_model_name}:[{token_id}/{vocab_size}]")
+            # Model output
+            model_output = generate_model_output(model=model,tokenizer=tokenizer,
+                                        input_tokens=input_tokens,
+                                        generate_method=args.generate_method) # dict = ["input_ids","attentions","hidden_states", "logits"]
+            
+            # Model logits
+            logits = model_output["logits"] # shape = (bs, num_tokens, vocab_size)
+            
+            # Predict probabilities
+            pred_probs = softmax(logits,axis=-1) # shape = (bs, num_tokens, vocab_size)
+            del logits
+            
+            # Naive entropy
+            naive_entropys = calculate_naive_entropy(pred_probs,normalize=args.entropy_normalize) # shape = (num_tokens) value belong to [0,1]
+            token_entropy_meter.update(naive_entropys.item())
+           
+            del pred_probs
+            
+            # Gammas Log : avg_NaEntropy
+            cur_log = {**{"token_id": token_id, },
+                       **{"token_entropy": token_entropy_meter.val },
+                        }
+            wandb.log(cur_log)
         
     # Summary 
     wandb.summary["model_size"] = models_cfg[args.model_name][args.model_type][1]
     wandb.summary["checkpoint_step"] = args.lora_checkpoint_step
+    wandb.summary["avg/token_entropy"] = token_entropy_meter.avg
         
     # wandb end
     wandb.finish()   
