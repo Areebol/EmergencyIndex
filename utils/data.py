@@ -115,7 +115,6 @@ def calculate_naive_entropy(probabilities: np.ndarray, normalize: bool = True):
     else:
         return entropy(probabilities,axis=-1)
         
-
 def plot_emergency_index(distance_matrixs, epsilon: float = 1e-10):
     """
     Plot image of Emergency Index func
@@ -137,7 +136,6 @@ def plot_emergency_index(distance_matrixs, epsilon: float = 1e-10):
     plt.grid(color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
     plt.title("gamma_emergency_index_func(gamma)")
     return plt
-    
     
 def plot_curve(x, y, label, x_label, y_label):
     plt.figure()

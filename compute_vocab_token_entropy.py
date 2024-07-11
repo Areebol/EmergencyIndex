@@ -29,12 +29,16 @@ def parse_args():
     parser.add_argument("--lora_model_name",default="", type=str, help="Specify lora chckpoint version")
     parser.add_argument("--lora_checkpoint_step",default=1, type=int, help="Specify lora chckpoint step")
     parser.add_argument("--entropy_normalize",default=True, type=bool, help="Entropy compution need to divide log(k)")
+    parser.add_argument("--num_sample", default=10000, type=int, help="Num to sample from vocab")
+    parser.add_argument("--seed", default=42, type=int, help="Random Seed")
     
     args = parser.parse_args()
     return args
 
 def main(args):
     models_cfg = load_config(args.models_cfg)
+    
+    set_seed(args.seed)
     
     if args.lora: # Load finetune model by LORA
         model_cfg = models_cfg[args.model_name][args.model_type]
@@ -46,23 +50,25 @@ def main(args):
     wandb.login(key=args.wandb_key)  # wandb api key
     if args.lora:
         runs = wandb.init(project='VocabTokenEntropy',mode=args.wandb_mode,save_code=True,
-                      name=f"{args.model_name}_{args.model_type}_lora_{args.lora_model_name}_{args.dataset}")
+                      name=f"{args.model_name}_{args.model_type}_lora_{args.lora_model_name}")
     else:
         runs = wandb.init(project='VocabTokenEntropy',mode=args.wandb_mode,save_code=True,
-                      name=f"{args.model_name}_{args.model_type}_{args.dataset}")
+                      name=f"{args.model_name}_{args.model_type}")
     wandb.config.update(args)
     
     vocab_size = tokenizer.vocab_size
     token_entropy_meter = AverageMeter()
+    vocab_ids = load_vocab_ids(args.model_name,args.model_type,
+                               args.num_sample,vocab_size=vocab_size)
     
     with torch.no_grad():
-        for token_id in range(vocab_size):
+        for step,token_id in enumerate(vocab_ids):
             gc.collect()
             torch.cuda.empty_cache()
             
             input_tokens = tokenizer.decode(token_id)
             
-            print(f"{args.model_name}_{args.model_type}_{args.lora_model_name}:[{token_id}/{vocab_size}]")
+            print(f"{args.model_name}_{args.model_type}_{args.lora_model_name}:[{step:5}/{len(vocab_ids)}]")
             # Model output
             model_output = generate_model_output(model=model,tokenizer=tokenizer,
                                         input_tokens=input_tokens,
@@ -76,7 +82,7 @@ def main(args):
             del logits
             
             # Naive entropy
-            naive_entropys = calculate_naive_entropy(pred_probs,normalize=args.entropy_normalize) # shape = (num_tokens) value belong to [0,1]
+            naive_entropys = calculate_naive_entropy(pred_probs[:,-1,:].reshape(1,1,-1),normalize=args.entropy_normalize) # shape = (num_tokens) value belong to [0,1]
             token_entropy_meter.update(naive_entropys.item())
            
             del pred_probs
