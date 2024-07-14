@@ -1,4 +1,4 @@
-LOG_MODE=online
+LOG_MODE=offline
 MODEL_NAME=qwen_1.5
 python compute_vocab_token_entropy.py --model_name $MODEL_NAME --wandb_mode $LOG_MODE --model_type 0.5b
 python compute_vocab_token_entropy.py --model_name $MODEL_NAME --wandb_mode $LOG_MODE --model_type chat_0.5b

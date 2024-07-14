@@ -15,8 +15,8 @@ def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
 
-def load_vocab_ids(model_name,model_type,num_sample,vocab_size):
-    save_file_name = f'./config/compute_vocab_token_entropy/{model_name}_{model_type}_vocab_ids.pkl'
+def load_vocab_ids(model_name,num_sample,vocab_size):
+    save_file_name = f'./config/compute_vocab_token_entropy/{model_name}_vocab_ids.pkl'
     if not os.path.exists(save_file_name):
         print(f"Random vocab ids not exists ({save_file_name})")
         os.makedirs(f'./config/compute_vocab_token_entropy',exist_ok=True)
