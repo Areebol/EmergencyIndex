@@ -137,3 +137,36 @@ def get_num_input_tokens(tokenizer:AutoTokenizer, input_tokens:str):
         num_input_tokens = inputs['input_ids'].shape[-1]
         del inputs
         return num_input_tokens
+    
+@torch.no_grad()
+def generate_bs_probs(tokenizer: AutoTokenizer, model: AutoModelForCausalLM, input_txt: str, max_new_tokens: int=256, num_beams: int=20):
+    """
+    generate output probabilities from beam search
+    args: 
+    ret:
+    probs: shape = 
+    """
+    inputs = tokenizer(input_txt, padding=False, return_tensors='pt')
+    input_ids = inputs['input_ids'].cuda()
+    attention_mask = inputs['attention_mask'].cuda()
+    gen_config = GenerationConfig(
+    # Parameters that control the generation strategy used
+    do_sample=False, num_beams=num_beams,num_return_sequences=num_beams,
+    # Parameters that control the length of the output
+    max_new_tokens=max_new_tokens,
+    # Parameters that define the output variables of generate
+    output_attentions=True, return_dict_in_generate=True, output_hidden_states=True,output_scores=True, 
+    # Special tokens that can be used at generation time
+    eos_token_id=tokenizer.eos_token_id, pad_token_id=tokenizer.eos_token_id
+    )
+    generate = model.generate(input_ids, attention_mask=attention_mask, generation_config=gen_config)
+
+    def get_lengths(sequences: torch.Tensor, eos_token_id=2):
+        mask = sequences != eos_token_id
+        lengths = mask.sum(dim=1)
+        return lengths
+    
+    bs_probs = torch.mul(get_lengths(generate['sequences'], eos_token_id=tokenizer.eos_token_id) - input_ids.shape[-1], generate['sequences_scores']).exp().cpu() # shape = [num_beams]
+    assert bs_probs.shape.__len__() == 1, f"Beam Search probs's shape {bs_probs.shape} is not like (num_beams)"
+    del generate
+    return bs_probs

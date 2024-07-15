@@ -3,6 +3,7 @@ import os
 import pickle
 import torch
 import random
+import argparse
 import numpy as np
 
 def load_config(config_path):
@@ -33,3 +34,22 @@ def load_vocab_ids(model_name,num_sample,vocab_size):
     
     return vocab_ids
     
+def get_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--wandb_key', default='aecdc69b1a817efc605df2d5be9dd7face113d04', help='wandb auth api key')
+    parser.add_argument("--wandb_mode", default="offline", choices=["offline","online"],help="Wandb log mode")
+    parser.add_argument("--models_cfg", default="./config/models_pz.yaml", help="model's weight config")
+    parser.add_argument("--model_name", default="qwen_1.5", type=str,help="LLM model family")
+    parser.add_argument("--model_type", default="0.5b", type=str,help="LLM model type")
+    parser.add_argument("--dataset", default="Xsum", choices=["HC3","Xsum","TriviaQA"], type=str,help="DataSet")
+    parser.add_argument("--dataset_size", default=200, type=int,help="DataSet size")
+    parser.add_argument("--lora", default=False,type=bool,help="True to use lora model")
+    parser.add_argument("--lora_model_dir",default ="/U_20240603_ZSH_SMIL/MedicalGPT/outputs-sft-llama2-7b-epoch2-v1", type=str,help="Lora checkpoint's path")
+    parser.add_argument("--lora_model_name",default="", type=str, help="Specify lora chckpoint version")
+    parser.add_argument("--lora_checkpoint_step",default=1, type=int, help="Specify lora chckpoint step")
+    parser.add_argument("--max_num_input_tokens", default=950, type=int,help="Max num of input otkens be allowed")
+    parser.add_argument("--seed", default=42, type=int, help="Random Seed")
+    parser.add_argument("--num_few_shot", type=int, default=5,help="Number of few shot examples to use")
+    parser.add_argument("--prompt_type", default='default', type=str)
+    parser.add_argument("--use_context", default=False,action=argparse.BooleanOptionalAction,help="Get generations for training set?")
+    return parser

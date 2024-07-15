@@ -150,3 +150,12 @@ def plot_curve(x, y, label, x_label, y_label):
     plt.grid(color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
     plt.title(label)
     return plt
+
+def calculate_block_entropy(probabilities: torch.Tensor,prob_normalize_method: str = "Sum"):
+    if prob_normalize_method == "Sum":
+        normalize_probs = probabilities / sum(probabilities)
+    else:
+        raise ValueError(f"prob_normalize_method {prob_normalize_method} is not implemented")
+    block_entropy = entropy(normalize_probs,axis=-1) / np.log(normalize_probs.shape[-1])
+    
+    return block_entropy

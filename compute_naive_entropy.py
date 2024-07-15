@@ -12,22 +12,10 @@ from scipy.special import softmax
 from torch.utils.data import DataLoader
 
 def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--wandb_key', default='aecdc69b1a817efc605df2d5be9dd7face113d04', help='wandb auth api key')
-    parser.add_argument("--wandb_mode", default="offline", choices=["offline","online"],help="Wandb log mode")
-    parser.add_argument("--models_cfg", default="./config/models_pz.yaml", help="model's weight config")
+    parser = get_parser()
     parser.add_argument("--generate_method", default=False, type = bool,help="True use model.generate(), otherwise use model.__call__()")
-    parser.add_argument("--model_name", default="qwen_1.5", type=str,help="LLM model family")
-    parser.add_argument("--model_type", default="0.5b", type=str,help="LLM model type")
-    parser.add_argument("--dataset", default="Xsum", choices=["HC3","Xsum"], type=str,help="DataSet")
-    parser.add_argument("--dataset_size", default=200, type=int,help="DataSet size")
-    parser.add_argument("--max_num_input_tokens", default=950, type=int,help="Max num of input otkens be allowed")
     parser.add_argument("--gammas", default=[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0], type=list,help="emergency index gamma")
     parser.add_argument("--log_image_interval", default=10, type=int, help="Step interval to log Image")
-    parser.add_argument("--lora", default=False,type=bool,help="True to use lora model")
-    parser.add_argument("--lora_model_dir",default ="/U_20240603_ZSH_SMIL/MedicalGPT/outputs-sft-llama2-7b-epoch2-v1", type=str,help="Lora checkpoint's path")
-    parser.add_argument("--lora_model_name",default="", type=str, help="Specify lora chckpoint version")
-    parser.add_argument("--lora_checkpoint_step",default=1, type=int, help="Specify lora chckpoint step")
     parser.add_argument("--entropy_normalize",default=True, type=bool, help="Entropy compution need to divide log(k)")
     
     args = parser.parse_args()
@@ -42,14 +30,15 @@ def main(args):
     else: # Load original model
         model, tokenizer = load_model_tokenizer(models_cfg[args.model_name][args.model_type])
     
-    dataset, preprocess = load_ds_preprocess(args.dataset)
+    dataset, preprocess = load_ds_preprocess(args)
     
     dataset = dataset.select(range(int(args.dataset_size * 1.5))).map(preprocess,batched=False)
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2)
 
     # Avg meters: gammas[emergency_index, distance], others
     gammas_avg_NaEntropy_meters = {gamma:AverageMeter() for gamma in args.gammas}
-    
+    wop_gammas_avg_NaEntropy_meters = {gamma:AverageMeter() for gamma in args.gammas}
+    gammas_meters = {"input_tokens":gammas_avg_NaEntropy_meters,"input_tokens_wo_prompt":wop_gammas_avg_NaEntropy_meters}
     # Wandb Config
     wandb.login(key=args.wandb_key)  # wandb api key
     if args.lora:
@@ -73,31 +62,34 @@ def main(args):
                 print(f"{args.model_name}_{args.model_type}_{args.lora_model_name}_{args.dataset}:[{step}/{args.dataset_size}]")
             if step >= args.dataset_size:
                 break
-            # Model output
-            model_output = generate_model_output(model=model,tokenizer=tokenizer,
-                                        input_tokens=batch_data["input_tokens"],
-                                        generate_method=args.generate_method) # dict = ["input_ids","attentions","hidden_states", "logits"]
-            
-            # Model logits
-            logits = model_output["logits"] # shape = (bs, num_tokens, vocab_size)
-            
-            # Predict probabilities
-            pred_probs = softmax(logits,axis=-1) # shape = (bs, num_tokens, vocab_size)
-            del logits
-            
-            # Naive entropy
-            naive_entropys = calculate_naive_entropy(pred_probs,normalize=args.entropy_normalize) # shape = (num_tokens) value belong to [0,1]
-            del pred_probs
-            
-            # Update
-            # Gammas: proportion of naive_entropys's avg
-            for gamma in args.gammas:
-                gamma_entropys = naive_entropys[int((1-gamma)*len(naive_entropys)):]
-                gammas_avg_NaEntropy_meters[gamma].update(np.mean(gamma_entropys))
+            for input_type in ["input_tokens","input_tokens_wo_prompt"]:
+                # Model output
+                model_output = generate_model_output(model=model,tokenizer=tokenizer,
+                                            input_tokens=batch_data[input_type],
+                                            generate_method=args.generate_method) # dict = ["input_ids","attentions","hidden_states", "logits"]
+                
+                # Model logits
+                logits = model_output["logits"] # shape = (bs, num_tokens, vocab_size)
+                
+                # Predict probabilities
+                pred_probs = softmax(logits,axis=-1) # shape = (bs, num_tokens, vocab_size)
+                del logits
+                
+                # Naive entropy
+                naive_entropys = calculate_naive_entropy(pred_probs,normalize=args.entropy_normalize) # shape = (num_tokens) value belong to [0,1]
+                del pred_probs
+                
+                # Update
+                # Gammas: proportion of naive_entropys's avg
+                for gamma in args.gammas:
+                    gamma_entropys = naive_entropys[int((1-gamma)*len(naive_entropys)):]
+                    gammas_meters[input_type][gamma].update(np.mean(gamma_entropys))
             
             # Gammas Log : avg_NaEntropy
             cur_log = {**{"num_input_tokens": num_input_tokens, },
-                       **{f"gamma_{gamma}_avg_NaEntropy":gammas_avg_NaEntropy_meters[gamma].val
+                       **{f"gamma_{gamma}_avg_NaEntropy":gammas_meters["input_tokens"][gamma].val
+                       for gamma in args.gammas},
+                       **{f"wop_gamma_{gamma}_avg_NaEntropy":gammas_meters["input_tokens_wo_prompt"][gamma].val
                        for gamma in args.gammas},
                        }
             if step % args.log_image_interval == 0:
@@ -115,6 +107,7 @@ def main(args):
     wandb.summary["checkpoint_step"] = args.lora_checkpoint_step
     for gamma in args.gammas:
         wandb.summary[f"avg/gamma_{gamma}_avg_NaEntropy"] = gammas_avg_NaEntropy_meters[gamma].avg
+        wandb.summary[f"avg/wop_gamma_{gamma}_avg_NaEntropy"] = wop_gammas_avg_NaEntropy_meters[gamma].avg
         
     # wandb end
     wandb.finish()   
