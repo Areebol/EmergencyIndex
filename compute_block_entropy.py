@@ -16,7 +16,6 @@ def parse_args():
     
     parser.add_argument("--project", default="BlockEntropy",help="Wandb project name")
     parser.add_argument("--entropy_normalize",default=True, type=bool, help="Entropy compution need to divide log(k)")
-    parser.add_argument("--max_num_input_tokens", default=950, type=int,help="Max num of input otkens be allowed")
     parser.add_argument("--max_new_tokens", default=50, type=int,help="Max num of new tokens generated")
     parser.add_argument("--num_beams", default=20, type=int,help="Num of max path to beam search")
     parser.add_argument("--prob_normalize_method", default="Sum", type=str,choices=["Sum","Softmax"], help="Method to normalize probs from model outputs")

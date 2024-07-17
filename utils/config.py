@@ -48,6 +48,7 @@ def get_parser():
     parser.add_argument("--lora_model_name",default="", type=str, help="Specify lora chckpoint version")
     parser.add_argument("--lora_checkpoint_step",default=1, type=int, help="Specify lora chckpoint step")
     parser.add_argument("--max_num_input_tokens", default=950, type=int,help="Max num of input otkens be allowed")
+    parser.add_argument("--truncate", default=False,help="Truncate #input tokens to max_num_input_tokens")
     parser.add_argument("--seed", default=42, type=int, help="Random Seed")
     parser.add_argument("--num_few_shot", type=int, default=5,help="Number of few shot examples to use")
     parser.add_argument("--prompt_type", default='default', type=str)

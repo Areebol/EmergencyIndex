@@ -93,7 +93,9 @@ def load_ds_preprocess(args):
                                         PROMPT, True)
             local_prompt = prompt + current_input
             print(local_prompt)
-            return {"input_tokens":local_prompt,"correct_answer":correct_answer}
+            return {"input_tokens":local_prompt,
+                    "input_tokens_wo_prompt":current_input,
+                    "correct_answer":correct_answer}
     else:
         raise ValueError(f"Currently not supported {args.dataset}")
     return dataset, preprocess

@@ -139,7 +139,7 @@ def get_num_input_tokens(tokenizer:AutoTokenizer, input_tokens:str):
         return num_input_tokens
     
 @torch.no_grad()
-def generate_bs_probs(tokenizer: AutoTokenizer, model: AutoModelForCausalLM, input_txt: str, max_new_tokens: int=256, num_beams: int=20):
+def generate_bs_probs(tokenizer: AutoTokenizer, model: AutoModelForCausalLM, input_txt: str, num_max_input_tokens: int = None, max_new_tokens: int=256, num_beams: int=20, truncate: bool = False):
     """
     generate output probabilities from beam search
     args: 
@@ -149,6 +149,9 @@ def generate_bs_probs(tokenizer: AutoTokenizer, model: AutoModelForCausalLM, inp
     inputs = tokenizer(input_txt, padding=False, return_tensors='pt')
     input_ids = inputs['input_ids'].cuda()
     attention_mask = inputs['attention_mask'].cuda()
+    if truncate and num_max_input_tokens is not None:
+        input_ids = input_ids[:num_max_input_tokens]
+        attention_mask = attention_mask[:num_max_input_tokens]
     gen_config = GenerationConfig(
     # Parameters that control the generation strategy used
     do_sample=False, num_beams=num_beams,num_return_sequences=num_beams,
