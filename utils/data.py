@@ -159,3 +159,7 @@ def calculate_block_entropy(probabilities: torch.Tensor,prob_normalize_method: s
     block_entropy = entropy(normalize_probs,axis=-1) / np.log(normalize_probs.shape[-1])
     
     return block_entropy
+
+def save(obj: any,file):
+    with open(f'{file}', 'wb') as f:
+        pickle.dump(object, f)

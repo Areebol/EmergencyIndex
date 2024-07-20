@@ -72,6 +72,7 @@ def merge_lora_model(base_model_path,lora_model_base_dir,
     )
     return new_model.merge_and_unload()
 
+@torch.no_grad()
 def generate_model_output(model:AutoModelForCausalLM, tokenizer:AutoTokenizer, input_tokens:str,generate_method=False):
     """
     generate model output used input_tokens
@@ -149,9 +150,11 @@ def generate_bs_probs(tokenizer: AutoTokenizer, model: AutoModelForCausalLM, inp
     inputs = tokenizer(input_txt, padding=False, return_tensors='pt')
     input_ids = inputs['input_ids'].cuda()
     attention_mask = inputs['attention_mask'].cuda()
-    if truncate and num_max_input_tokens is not None:
-        input_ids = input_ids[:num_max_input_tokens]
-        attention_mask = attention_mask[:num_max_input_tokens]
+    if truncate:
+        assert num_max_input_tokens != None
+        input_ids = input_ids[:,:num_max_input_tokens]
+        attention_mask = attention_mask[:,:num_max_input_tokens]
+        print(f"truncate input to {num_max_input_tokens}")
     gen_config = GenerationConfig(
     # Parameters that control the generation strategy used
     do_sample=False, num_beams=num_beams,num_return_sequences=num_beams,

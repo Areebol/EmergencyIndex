@@ -57,18 +57,18 @@ def main(args):
             torch.cuda.empty_cache()
             # Flitering out some larger data due to CUDA memeory
             num_input_tokens = get_num_input_tokens(tokenizer=tokenizer,input_tokens=batch_data["input_tokens"])
-            if num_input_tokens > args.max_num_input_tokens:
+            if args.truncate == False and num_input_tokens > args.max_num_input_tokens:
                 continue
             else:
-                print(f"{args.model_name}_{args.model_type}_{args.lora_model_name}_{args.dataset}:[{step}/{args.dataset_size}]")
+                print(f"{args.model_name}_{args.model_type}_{args.lora_model_name}_{args.dataset}:[{step}/{args.dataset_size},{num_input_tokens}]")
             if step >= args.dataset_size:
                 break
             
-            bs_probs = generate_bs_probs(tokenizer,model,batch_data["input_tokens"],max_new_tokens=args.max_new_tokens,num_beams=args.num_beams)  # shape = [num_beams]
+            bs_probs = generate_bs_probs(tokenizer,model,batch_data["input_tokens"],max_new_tokens=args.max_new_tokens,num_beams=args.num_beams,truncate=args.truncate,num_max_input_tokens=args.max_num_input_tokens)  # shape = [num_beams]
             block_entropy = calculate_block_entropy(bs_probs.numpy(),args.prob_normalize_method)
             block_entropy_meter.update(block_entropy)
             
-            wop_bs_probs = generate_bs_probs(tokenizer,model,batch_data["input_tokens_wo_prompt"],max_new_tokens=args.max_new_tokens,num_beams=args.num_beams)  # shape = [num_beams]
+            wop_bs_probs = generate_bs_probs(tokenizer,model,batch_data["input_tokens_wo_prompt"],max_new_tokens=args.max_new_tokens,num_beams=args.num_beams,truncate=args.truncate,num_max_input_tokens=args.max_num_input_tokens)  # shape = [num_beams]
             wop_block_entropy = calculate_block_entropy(wop_bs_probs.numpy(),args.prob_normalize_method)
             wop_block_entropy_meter.update(wop_block_entropy)
             
