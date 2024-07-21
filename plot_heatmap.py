@@ -42,7 +42,10 @@ dataset = [{"input_tokens":prompt + "9.11 and 9.9, which one is bigger?"},
             {"input_tokens":nonsense + "which one is bigger? 9.11 and 9.9"},
             {"input_tokens":"which one is bigger? 9.11 and 9.9"},
             {"input_tokens":"9.11 and 9.9, which one is bigger?"},]
-dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2)
+# dataset, preprocess = load_ds_preprocess(args)
+    
+# dataset = dataset.select(range(int(5))).map(preprocess,batched=False)
+# dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2)
 
 save_dir = "tmp/heatmaps"
 os.makedirs(save_dir,exist_ok=True)
@@ -73,7 +76,7 @@ for idx,data in enumerate(dataset):
     # lens = torch.tensor(range(len(tokens),0,-1))
     test_metrics = last_attention.sum(0) 
     df = pd.DataFrame(test_metrics.numpy(),index=tokens,columns=["tokens"])
-    heatmap = sns.heatmap(df,annot=True)
+    heatmap = sns.heatmap(df)
     fig = heatmap.get_figure()
     fig.savefig(f"{save_dir}/{args.model_type}_{idx}_test.png",dpi = 400)
     plt.close("all")
