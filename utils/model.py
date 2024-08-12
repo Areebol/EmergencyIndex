@@ -179,8 +179,46 @@ def generate_bs_probs(tokenizer: AutoTokenizer, model: AutoModelForCausalLM, inp
         mask = sequences != eos_token_id
         lengths = mask.sum(dim=1)
         return lengths
-    
     bs_probs = torch.mul(get_lengths(generate['sequences'], eos_token_id=tokenizer.eos_token_id) - input_ids.shape[-1], generate['sequences_scores']).exp().cpu() # shape = [num_beams]
     assert bs_probs.shape.__len__() == 1, f"Beam Search probs's shape {bs_probs.shape} is not like (num_beams)"
     del generate
     return bs_probs
+
+@torch.no_grad()
+def generate_token_log_liks(tokenizer: AutoTokenizer, model: AutoModelForCausalLM, input_txt: str, num_max_input_tokens: int = None, max_new_tokens: int=256, num_beams: int=20, truncate: bool = False):
+    """
+    generate token log likelihoods
+    args: 
+    ret:
+    probs: shape = 
+    """
+    inputs = tokenizer(input_txt, padding=False, return_tensors='pt')
+    input_ids = inputs['input_ids'].cuda()
+    attention_mask = inputs['attention_mask'].cuda()
+    if truncate:
+        assert num_max_input_tokens != None
+        input_ids = input_ids[:,:num_max_input_tokens]
+        attention_mask = attention_mask[:,:num_max_input_tokens]
+        print(f"truncate input to {num_max_input_tokens}")
+    gen_config = GenerationConfig(
+    # Parameters that control the generation strategy used
+    do_sample=True, num_beams=num_beams,num_return_sequences=num_beams,
+    # Parameters that control the length of the output
+    max_new_tokens=max_new_tokens,
+    # Parameters that define the output variables of generate
+    return_dict_in_generate=True, output_scores=True, 
+    # Special tokens that can be used at generation time
+    eos_token_id=tokenizer.eos_token_id, pad_token_id=tokenizer.eos_token_id
+    )
+    generate = model.generate(input_ids, attention_mask=attention_mask, generation_config=gen_config)
+    log_likelihoods_s = []
+    for index in range(num_beams):
+        scores = [score[index,:].unsqueeze(0) for score in generate.scores]
+        transition_scores = model.compute_transition_scores(
+                generate.sequences[index].unsqueeze(0), generate.scores, normalize_logits=True)
+        # Transition_scores[0] only contains the scores for the first generated tokens.
+
+        log_likelihoods = [score.item() for score in transition_scores[0]]
+        log_likelihoods_s.append(log_likelihoods)
+    del generate
+    return log_likelihoods_s
