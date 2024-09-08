@@ -21,7 +21,7 @@ def extract_token_features(model_output:dir = None, method:str = None):
     """
     # Temp code
     if method == "FinalOutput":
-        assert len(model_output["hidden_states"].shape) == 4, f"Hidden_states' shape {model_output["hidden_states"].shape} is not like [num_layers,batch_size,num_heads,num_tokens,num_tokens]"
+        # assert len(model_output["hidden_states"].shape) == 4, f"Hidden_states' shape {model_output["hidden_states"].shape} is not like [num_layers,batch_size,num_heads,num_tokens,num_tokens]"
         token_features = model_output["hidden_states"][-1,:,:,:] # shape = [num_layers,batch_size,num_tokens,token_dim]
     # elif method == "b":
     #     token_features = model_output["hidden_states"][-1,:,:,:] # shape = [batch_size,num_tokens,token_dim]

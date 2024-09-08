@@ -16,7 +16,12 @@ def load_model_tokenizer(model_config=None,half_models=[32,34,70,72]):
     tokenizer
     """
     tokenizer = AutoTokenizer.from_pretrained(model_config[0], fast_tokenizer=True, trust_remote_code=True)
-    tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.eos_token_id = 2
+    tokenizer.bos_token_id = 1
+    tokenizer.eos_token = tokenizer.decode(tokenizer.eos_token_id)
+    tokenizer.bos_token = tokenizer.decode(tokenizer.bos_token_id)
+    tokenizer.pad_token_id = tokenizer.eos_token_id
+    tokenizer.pad_token = tokenizer.eos_token        
     config = AutoConfig.from_pretrained(model_config[0], output_attentions=True, attn_implementation="eager", trust_remote_code=True)
     if model_config[1] in half_models:
         print("Loading model in half mode")
@@ -185,7 +190,7 @@ def generate_bs_probs(tokenizer: AutoTokenizer, model: AutoModelForCausalLM, inp
     return bs_probs
 
 @torch.no_grad()
-def generate_token_log_liks(tokenizer: AutoTokenizer, model: AutoModelForCausalLM, input_txt: str, num_max_input_tokens: int = None, max_new_tokens: int=256, num_beams: int=20, truncate: bool = False):
+def generate_beam_log_liks(tokenizer: AutoTokenizer, model: AutoModelForCausalLM, input_txt: str, num_max_input_tokens: int = None, max_new_tokens: int=256, num_beams: int=20, truncate: bool = False, do_sample: bool = False):
     """
     generate token log likelihoods
     args: 
@@ -202,23 +207,29 @@ def generate_token_log_liks(tokenizer: AutoTokenizer, model: AutoModelForCausalL
         print(f"truncate input to {num_max_input_tokens}")
     gen_config = GenerationConfig(
     # Parameters that control the generation strategy used
-    do_sample=True, num_beams=num_beams,num_return_sequences=num_beams,
+    do_sample=do_sample, num_beams=num_beams,num_return_sequences=num_beams,
     # Parameters that control the length of the output
-    max_new_tokens=max_new_tokens,
+    max_new_tokens=max_new_tokens,top_k=20,
     # Parameters that define the output variables of generate
     return_dict_in_generate=True, output_scores=True, 
     # Special tokens that can be used at generation time
     eos_token_id=tokenizer.eos_token_id, pad_token_id=tokenizer.eos_token_id
     )
     generate = model.generate(input_ids, attention_mask=attention_mask, generation_config=gen_config)
-    log_likelihoods_s = []
-    for index in range(num_beams):
-        scores = [score[index,:].unsqueeze(0) for score in generate.scores]
-        transition_scores = model.compute_transition_scores(
-                generate.sequences[index].unsqueeze(0), generate.scores, normalize_logits=True)
-        # Transition_scores[0] only contains the scores for the first generated tokens.
+    # log_likelihoods_s = []
+    # for index in range(num_beams):
+    #     scores = [score[index,:].unsqueeze(0) for score in generate.scores]
+    #     transition_scores = model.compute_transition_scores(
+    #             generate.sequences[index].unsqueeze(0), scores, normalize_logits=True)
+    #     # Transition_scores[0] only contains the scores for the first generated tokens.
 
-        log_likelihoods = [score.item() for score in transition_scores[0]]
-        log_likelihoods_s.append(log_likelihoods)
+    #     log_likelihoods = [score.item() for score in transition_scores[0]]
+    #     log_likelihoods_s.append(log_likelihoods)
+    # def get_lengths(sequences: torch.Tensor, eos_token_id=2):
+    #     mask = sequences != eos_token_id
+    #     lengths = mask.sum(dim=1)
+    #     return lengths
+    # bs_probs = torch.mul(get_lengths(generate['sequences'], eos_token_id=tokenizer.eos_token_id) - input_ids.shape[-1], generate['sequences_scores']).exp().cpu() # shape = [num_beams]
+    beam_log_liks = generate['sequences_scores']
     del generate
-    return log_likelihoods_s
+    return beam_log_liks

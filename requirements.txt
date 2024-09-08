@@ -1,0 +1,13 @@
+# python=3.11
+torch
+pandas
+transformers
+sentence_transformers
+torchmetrics
+datasets
+ipdb
+rouge_score
+selfcheckgpt
+sentencepiece
+protobuf
+peft

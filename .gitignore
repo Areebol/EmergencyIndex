@@ -170,3 +170,5 @@ wandb/
 # out file
 *out
 tmp/
+output/
+data/
